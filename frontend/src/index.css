@@ -1,0 +1,17 @@
+/* src/index.css - Tailwind v4 compatible */
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* small global rules */
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
+  background-color: #f8fafb; /* subtle page bg */
+  color: #0f1724;
+}
