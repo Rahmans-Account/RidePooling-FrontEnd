@@ -33,8 +33,8 @@ export default function UserProfile() {
         <div className="bg-white rounded-2xl shadow-md p-8 max-w-3xl mx-auto">
           {/* Profile Image */}
           <div className="flex justify-center mb-6">
-            <img
-              src="https://via.placeholder.com/100"
+          <img
+              src="../../public/profile.png"
               alt="User Avatar"
               className="w-24 h-24 rounded-full border-4 border-indigo-600"
             />

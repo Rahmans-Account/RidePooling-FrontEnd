@@ -15,10 +15,10 @@ export default function Profile() {
         {/* Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           <div className="bg-white shadow-sm rounded-2xl p-5">
-            <img
-              src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e"
+          <img
+              src="../../public/offer.png"
               alt="Offer a Ride"
-              className="rounded-xl w-full h-40 object-cover mb-4"
+              className="rounded-xl w-full h-50 object-cover mb-4"
             />
             <h2 className="text-lg font-semibold mb-1">Offer a Ride</h2>
             <p className="text-gray-500 mb-4">
@@ -33,10 +33,10 @@ export default function Profile() {
           </div>
 
           <div className="bg-white shadow-sm rounded-2xl p-5">
-            <img
-              src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
+          <img
+              src="../../public/book.png"
               alt="Find a Ride"
-              className="rounded-xl w-full h-40 object-cover mb-4"
+              className="rounded-xl w-full h-50 object-cover mb-4"
             />
             <h2 className="text-lg font-semibold mb-1">Find a Ride</h2>
             <p className="text-gray-500 mb-4">
