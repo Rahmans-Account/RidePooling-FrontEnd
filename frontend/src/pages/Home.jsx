@@ -7,7 +7,8 @@ export default function Home() {
       <nav className="sticky top-0 z-50 bg-[#FFF8EE]/95 backdrop-blur-sm flex items-center justify-between px-6 sm:px-10 py-4 border-b border-slate-200 transition-shadow shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 flex items-center justify-center bg-indigo-600 text-white font-bold rounded-full">
-            C
+             {/* <img src="../../public/logo3.png" alt="Logo" className="w-9 h-9 rounded-full border-1 border-indigo-600" /> */}
+            RP
           </div>
           <span className="font-semibold text-lg text-slate-900">
             Ride Pooling
@@ -84,16 +85,6 @@ export default function Home() {
           <div className="mt-8 text-slate-400 text-sm">© 2023 CommuteSync</div>
         </div>
       </main>
-
-      {/* Floating buttons */}
-      <div className="fixed bottom-6 right-6 flex gap-3">
-        <button className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow">
-          ✋
-        </button>
-        <button className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
-          ↗
-        </button>
-      </div>
     </div>
   );
 }
