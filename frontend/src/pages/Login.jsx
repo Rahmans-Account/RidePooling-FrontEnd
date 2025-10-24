@@ -5,6 +5,7 @@ import { LogIn, X } from "lucide-react";
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false); // track if form was submitted
   const navigate = useNavigate();
 
   const validate = () => {
@@ -25,8 +26,8 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitted(true); // mark that user submitted
     if (validate()) {
-      // On successful login, navigate to profile
       navigate("/profile");
     }
   };
@@ -52,15 +53,18 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="w-full space-y-6 mt-4">
           <div>
             <input
-              type="email"
+              type="text"
               name="email"
               placeholder="Email"
               value={form.email}
               onChange={handleChange}
               className={`w-full border ${
-                errors.email ? "border-red-500" : "border-gray-300"
+                submitted && errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
+            {submitted && errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -71,10 +75,12 @@ export default function Login() {
               value={form.password}
               onChange={handleChange}
               className={`w-full border ${
-                errors.password ? "border-red-500" : "border-gray-300"
+                submitted && errors.password
+                  ? "border-red-500"
+                  : "border-gray-300"
               } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
-            {errors.password && (
+            {submitted && errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
           </div>
@@ -86,13 +92,6 @@ export default function Login() {
             Sign In
           </button>
         </form>
-
-        {/* Email error summary (single line) */}
-        {errors.email && (
-          <div className="w-full mt-6 text-center">
-            <p className="text-red-500 font-medium">Invalid email</p>
-          </div>
-        )}
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-600 mt-6">

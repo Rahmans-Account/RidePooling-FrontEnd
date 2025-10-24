@@ -5,6 +5,7 @@ import { UserPlus, X } from "lucide-react";
 export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false); // Track submission
   const navigate = useNavigate();
 
   const validate = () => {
@@ -12,7 +13,7 @@ export default function Register() {
     if (!form.name) errs.name = "Name is required.";
     if (!form.email) errs.email = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      errs.email = "Invalid email";
+      errs.email = "Invalid email format.";
     if (!form.password) errs.password = "Password is required.";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -21,14 +22,14 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" })); // clear error when typing
+    setErrors((prev) => ({ ...prev, [name]: "" })); // Clear the specific error
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setSubmitted(true);
     if (validate()) {
       console.log("Registered successfully!", form);
-      // You can navigate or send data to backend here
       navigate("/profile");
     }
   };
@@ -52,6 +53,7 @@ export default function Register() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full space-y-6 mt-4">
+          {/* Name Field */}
           <div>
             <input
               type="text"
@@ -60,27 +62,32 @@ export default function Register() {
               value={form.name}
               onChange={handleChange}
               className={`w-full border ${
-                errors.name ? "border-red-500" : "border-gray-300"
+                submitted && errors.name ? "border-red-500" : "border-gray-300"
               } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
-            {errors.name && (
+            {submitted && errors.name && (
               <p className="text-red-500 text-sm mt-1">{errors.name}</p>
             )}
           </div>
 
+          {/* Email Field */}
           <div>
             <input
-              type="email"
+              type="text"
               name="email"
               placeholder="Email"
               value={form.email}
               onChange={handleChange}
               className={`w-full border ${
-                errors.email ? "border-red-500" : "border-gray-300"
+                submitted && errors.email ? "border-red-500" : "border-gray-300"
               } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
+            {submitted && errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
           </div>
 
+          {/* Password Field */}
           <div>
             <input
               type="password"
@@ -89,14 +96,17 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               className={`w-full border ${
-                errors.password ? "border-red-500" : "border-gray-300"
+                submitted && errors.password
+                  ? "border-red-500"
+                  : "border-gray-300"
               } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
-            {errors.password && (
+            {submitted && errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition"
@@ -104,13 +114,6 @@ export default function Register() {
             Sign Up
           </button>
         </form>
-
-        {/* Email error summary (single line) */}
-        {errors.email && (
-          <div className="w-full mt-6 text-center">
-            <p className="text-red-500 font-medium">Invalid email</p>
-          </div>
-        )}
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-600 mt-6">
