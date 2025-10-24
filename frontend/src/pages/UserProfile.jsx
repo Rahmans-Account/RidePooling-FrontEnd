@@ -34,7 +34,7 @@ export default function UserProfile() {
           {/* Profile Image */}
           <div className="flex justify-center mb-6">
             <img
-              src="https://via.placeholder.com/100"
+              src="../../public/avatar.png"
               alt="User Avatar"
               className="w-24 h-24 rounded-full border-4 border-indigo-600"
             />

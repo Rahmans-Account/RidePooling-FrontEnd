@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogIn, X } from "lucide-react";
+import axios from "axios"; // Import Axios
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(""); // New state for server-side errors
   const [submitted, setSubmitted] = useState(false); // track if form was submitted
+  const [loading, setLoading] = useState(false); // Optional: to show loading state
   const navigate = useNavigate();
 
   const validate = () => {
@@ -22,13 +25,44 @@ export default function Login() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" })); // clear error on typing
+    setServerError(""); // Clear server error when user starts typing
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true); // mark that user submitted
+    setServerError(""); // Clear previous server errors
     if (validate()) {
-      navigate("/profile");
+      setLoading(true); // Start loading
+      try {
+        // Send POST request to your backend login API using Axios
+        const response = await axios.post(
+          "http://localhost:5003/api/auth/login",
+          {
+            // Replace with your actual backend URL and endpoint
+            email: form.email,
+            password: form.password,
+          }
+        );
+
+        // Assuming the backend returns { token: "jwt-token-here" } in response.data
+        const { token } = response.data;
+
+        // Store the JWT in localStorage (or use cookies for more security)
+        localStorage.setItem("jwtToken", token);
+
+        // Navigate to Dashboard on success
+        navigate("/profile");
+      } catch (err) {
+        // Set server error message
+        // Axios errors have err.response, so we can get the message from there
+        const errorMessage =
+          err.response?.data?.message ||
+          "Login failed. Please check your credentials.";
+        setServerError(errorMessage);
+      } finally {
+        setLoading(false); // End loading
+      }
     }
   };
 
@@ -53,7 +87,7 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="w-full space-y-6 mt-4">
           <div>
             <input
-              type="text"
+              type="email" // Changed to type="email" for better built-in validation
               name="email"
               placeholder="Email"
               value={form.email}
@@ -85,11 +119,16 @@ export default function Login() {
             )}
           </div>
 
+          {serverError && (
+            <p className="text-red-500 text-sm text-center">{serverError}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition"
+            disabled={loading} // Disable button while loading
+            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition disabled:opacity-50"
           >
-            Sign In
+            {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 

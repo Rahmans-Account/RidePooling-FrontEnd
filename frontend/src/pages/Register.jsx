@@ -1,11 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, X } from "lucide-react";
+import axios from "axios"; // Import Axios
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    city: "",
+  });
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false); // Track submission
+  const [serverError, setServerError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const validate = () => {
@@ -15,6 +24,12 @@ export default function Register() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = "Invalid email format.";
     if (!form.password) errs.password = "Password is required.";
+    else if (form.password.length < 6)
+      errs.password = "Password must be at least 6 characters.";
+    if (!form.phone) errs.phone = "Phone number is required.";
+    else if (!/^\d{10}$/.test(form.phone))
+      errs.phone = "Phone number must be 10 digits.";
+    if (!form.city) errs.city = "City is required.";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -22,15 +37,46 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" })); // Clear the specific error
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setServerError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitted(true);
+    setServerError("");
     if (validate()) {
-      console.log("Registered successfully!", form);
-      navigate("/profile");
+      setLoading(true);
+      try {
+        // Send POST request to register endpoint
+        const response = await axios.post(
+          "http://localhost:5003/api/auth/register",
+          {
+            name: form.name,
+            email: form.email,
+            password: form.password,
+            phone: form.phone,
+            city: form.city,
+          }
+        );
+
+        // Backend returns { success: true, data: { token, user: { _id, name, email, phone, city, ... } } }
+        const { token } = response.data.data;
+
+        // Store JWT in localStorage
+        localStorage.setItem("jwtToken", token);
+
+        // Navigate to profile on success
+        navigate("/profile");
+      } catch (err) {
+        // Handle server-side errors
+        const errorMessage =
+          err.response?.data?.message ||
+          "Registration failed. Please try again.";
+        setServerError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -106,12 +152,52 @@ export default function Register() {
             )}
           </div>
 
+          {/* Phone Field */}
+          <div>
+            <input
+              type="text"
+              name="phone"
+              placeholder="Phone Number (10 digits)"
+              value={form.phone}
+              onChange={handleChange}
+              className={`w-full border ${
+                submitted && errors.phone ? "border-red-500" : "border-gray-300"
+              } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            {submitted && errors.phone && (
+              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+            )}
+          </div>
+
+          {/* City Field */}
+          <div>
+            <input
+              type="text"
+              name="city"
+              placeholder="City"
+              value={form.city}
+              onChange={handleChange}
+              className={`w-full border ${
+                submitted && errors.city ? "border-red-500" : "border-gray-300"
+              } rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            {submitted && errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+            )}
+          </div>
+
+          {/* Server Error */}
+          {serverError && (
+            <p className="text-red-500 text-sm text-center">{serverError}</p>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition"
+            disabled={loading}
+            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition disabled:opacity-50"
           >
-            Sign Up
+            {loading ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
 
