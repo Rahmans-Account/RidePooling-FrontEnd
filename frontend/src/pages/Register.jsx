@@ -62,7 +62,7 @@ export default function Register() {
 
         // Backend returns { success: true, data: { token, user: { _id, name, email, phone, city, ... } } }
         const { token } = response.data.data;
-
+        console.log("Registration successful, token:", token);
         // Store JWT in localStorage
         localStorage.setItem("jwtToken", token);
 

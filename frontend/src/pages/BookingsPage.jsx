@@ -1,32 +1,43 @@
-import React, { useState } from "react";
-import MyBookedRides from "../components/MyBookedRides"; // adjust path if needed
-//Shows bookings
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import MyBookedRides from "../components/MyBookedRides";
+
 export default function BookingsPage() {
-  // eslint-disable-next-line no-unused-vars
-  const [bookings, setBookings] = useState([
-    {
-      ride: "Downtown → Airport",
-      date: "Oct 26, 2023 at 8:00 AM",
-      status: "Confirmed",
-      driver: "John Doe",
-    },
-    {
-      ride: "Midtown → Suburbs",
-      date: "Oct 22, 2023 at 5:30 PM",
-      status: "Completed",
-      driver: "Jane Smith",
-    },
-    {
-      ride: "Uptown → Downtown",
-      date: "Oct 18, 2023 at 9:00 AM",
-      status: "Cancelled",
-      driver: "Sam Wilson",
-    },
-  ]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const token = localStorage.getItem("jwtToken"); // assuming you store JWT here
+        console.log("Fetching bookings with token:", token);
+        const response = await axios.get("http://localhost:5003/api/bookings", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setBookings(response.data.data || []);
+      } catch (err) {
+        console.error("Error fetching bookings:", err);
+        setError(
+          err.response?.data?.error?.message || "Failed to load bookings"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  if (loading)
+    return <p className="text-center text-gray-500">Loading bookings...</p>;
+  if (error) return <p className="text-center text-red-500">{error}</p>;
 
   return (
-    <>
-      <MyBookedRides bookings={bookings} />;
-    </>
+    <div className="p-4">
+      <MyBookedRides bookings={bookings} />
+    </div>
   );
 }

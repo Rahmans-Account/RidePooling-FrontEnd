@@ -46,8 +46,8 @@ export default function Login() {
         );
 
         // Assuming the backend returns { token: "jwt-token-here" } in response.data
-        const { token } = response.data;
-
+        const { token } = response.data.data;
+        console.log("login successful, token:", token);
         // Store the JWT in localStorage (or use cookies for more security)
         localStorage.setItem("jwtToken", token);
 
