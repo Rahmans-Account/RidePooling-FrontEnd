@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogIn, X } from "lucide-react";
+import authService from "../services/authService";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate();
 
   const validate = () => {
@@ -23,11 +25,20 @@ export default function Login() {
     setErrors((prev) => ({ ...prev, [name]: "" })); // clear error on typing
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
+    if (!validate()) return;
+    setLoading(true)
+    try {
+      await authService.login(form.email, form.password)
       // On successful login, navigate to profile
       navigate("/profile");
+    } catch (err) {
+      // map backend errors to form
+      const msg = err?.response?.data?.error?.message || err.message || 'Login failed'
+      setErrors({ form: msg })
+    } finally {
+      setLoading(false)
     }
   };
 
@@ -81,16 +92,17 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition"
+            disabled={loading}
+            className="w-full py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition disabled:opacity-60"
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         {/* Email error summary (single line) */}
-        {errors.email && (
+        {(errors.email || errors.form) && (
           <div className="w-full mt-6 text-center">
-            <p className="text-red-500 font-medium">Invalid email</p>
+            <p className="text-red-500 font-medium">{errors.form || 'Invalid email'}</p>
           </div>
         )}
 
