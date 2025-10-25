@@ -71,7 +71,7 @@ export default function Register() {
       } catch (err) {
         // Handle server-side errors
         const errorMessage =
-          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
           "Registration failed. Please try again.";
         setServerError(errorMessage);
       } finally {

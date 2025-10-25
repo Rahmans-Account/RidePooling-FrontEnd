@@ -57,7 +57,7 @@ export default function Login() {
         // Set server error message
         // Axios errors have err.response, so we can get the message from there
         const errorMessage =
-          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
           "Login failed. Please check your credentials.";
         setServerError(errorMessage);
       } finally {
