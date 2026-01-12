@@ -25,6 +25,7 @@ export default function FindRide() {
 
     try {
       setLoading(true);
+      console.log("currentLocation:", currentLocation);
 
       const response = await axios.get(
         "http://localhost:5003/api/rides/search",
@@ -40,10 +41,9 @@ export default function FindRide() {
           },
         }
       );
-      console.log("Rides fetched:", response.data);
-
+      console.log("Rides search response:", response.data);
       // backend response: { success, data, meta }
-      setRides(response.data.data || []);
+      setRides(response.data.data);
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Failed to fetch rides");
@@ -75,7 +75,7 @@ export default function FindRide() {
       </h1>
 
       {/* Search Section */}
-      <div className="cursor-pointerbg-white rounded-2xl shadow-md p-6 flex flex-wrap gap-4 items-end">
+      <div className="cursor-pointer bg-white rounded-2xl shadow-md p-6 flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[250px]">
           <AutoCompleteLocation
             label="Current Location"
