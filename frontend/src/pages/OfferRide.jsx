@@ -1,203 +1,249 @@
 import React, { useState } from "react";
-import { Calendar, Clock, Car, Minus, Plus, ArrowLeft } from "lucide-react";
+import { Minus, Plus, ArrowLeft, IndianRupee } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AutoCompleteLocation from "../components/AutoCompleteLocation";
+import axios from "axios";
 
 export default function OfferRide() {
   const navigate = useNavigate();
-  const [seats, setSeats] = useState(1);
+
+  const [seatsTotal, setSeatsTotal] = useState(1);
   const [pickup, setPickup] = useState(null);
   const [destination, setDestination] = useState(null);
-  const [date, setDate] = useState("2025-10-19");
-  const [time, setTime] = useState("10:00");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [vehicle, setVehicle] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
 
-  const increment = () => setSeats(seats + 1);
-  const decrement = () => seats > 1 && setSeats(seats - 1);
+  const increment = () => setSeatsTotal((s) => s + 1);
+  const decrement = () => seatsTotal > 1 && setSeatsTotal((s) => s - 1);
 
   const validate = () => {
-    const newErrors = {};
-    if (!pickup) newErrors.pickup = "Pickup location is required";
-    if (!destination) newErrors.destination = "Destination is required";
-    if (!date) newErrors.date = "Date is required";
-    if (!time) newErrors.time = "Time is required";
-    return newErrors;
+    const e = {};
+    if (!pickup?.lat || !pickup?.lng) e.pickup = true;
+    if (!destination?.lat || !destination?.lng) e.destination = true;
+    if (!date) e.date = true;
+    if (!time) e.time = true;
+    if (!price || Number(price) <= 0) e.price = true;
+    return e;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     const validationErrors = validate();
     setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) return;
+    console.log("pickup:", pickup);
+    console.log("destination:", destination);
 
-    if (Object.keys(validationErrors).length === 0) {
-      console.log("Ride details submitted:");
-      console.log("Pickup:", pickup);
-      console.log("Destination:", destination);
-      console.log("Date:", date);
-      console.log("Time:", time);
-      console.log("Seats:", seats);
-      console.log("Vehicle:", vehicle);
-    }
-  };
-
-  // clear error when typing/selecting again
-  const clearError = (field) => {
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErr = { ...prev };
-        delete newErr[field];
-        return newErr;
+    const payload = {
+      origin: pickup.name,
+      destination: destination.name,
+      dateTime: new Date(`${date}T${time}`),
+      seatsTotal,
+      price: Number(price),
+      vehicle,
+      description,
+      originCoords: {
+        type: "Point",
+        coordinates: [pickup.lng, pickup.lat],
+      },
+      destinationCoords: {
+        type: "Point",
+        coordinates: [destination.lng, destination.lat],
+      },
+    };
+    console.log(localStorage.getItem("jwtToken"));
+    try {
+      await axios.post("http://localhost:5003/api/rides", payload, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+        },
       });
+      navigate("/profile");
+    } catch (err) {
+      console.error("BACKEND ERROR:", err.response?.data);
+      alert(err.response?.data?.message || "Failed to create ride");
     }
   };
+
+  const errorClass = "border-red-400 focus:ring-red-400";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-4">
-      {/* Header with Back Button */}
-      <div className="flex items-center w-full max-w-4xl mb-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
         <button
           onClick={() => navigate("/profile")}
-          className="flex items-center text-gray-600 hover:text-indigo-600 transition"
+          className="cursor-pointer flex items-center text-sm text-gray-600 hover:text-indigo-600 mb-6"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          <span className="font-medium">Back to Profile</span>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Profile
         </button>
-      </div>
 
-      {/* Title */}
-      <h1 className="text-3xl font-bold mb-6 w-full max-w-4xl">Offer a Ride</h1>
+        <h1 className="text-3xl font-bold mb-8">Offer a Ride</h1>
 
-      {/* Card */}
-      <div className="bg-white shadow-md rounded-2xl p-6 w-full max-w-4xl">
-        <h2 className="text-xl font-semibold mb-4">Ride Details</h2>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-2xl shadow-sm p-8 space-y-8"
+        >
+          {/* Route */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4">Route</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Row 1: Pickup + Destination */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <AutoCompleteLocation
-                label="Pickup Location"
-                onSelect={(loc) => {
-                  setPickup(loc);
-                  clearError("pickup");
-                }}
-                onTyping={() => clearError("pickup")}
-              />
-              {errors.pickup && (
-                <p className="text-red-500 text-sm mt-1">{errors.pickup}</p>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <AutoCompleteLocation
+                  label="Pickup location"
+                  onSelect={(loc) => {
+                    setPickup(loc);
+                    setErrors((e) => ({ ...e, pickup: false }));
+                  }}
+                />
+                {errors.pickup && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Pickup location is required
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <AutoCompleteLocation
+                  label="Destination"
+                  onSelect={(loc) => {
+                    setDestination(loc);
+                    setErrors((e) => ({ ...e, destination: false }));
+                  }}
+                />
+                {errors.destination && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Destination is required
+                  </p>
+                )}
+              </div>
             </div>
+          </section>
 
-            <div>
-              <AutoCompleteLocation
-                label="Destination"
-                onSelect={(loc) => {
-                  setDestination(loc);
-                  clearError("destination");
-                }}
-                onTyping={() => clearError("destination")}
-              />
-              {errors.destination && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.destination}
-                </p>
-              )}
-            </div>
-          </div>
+          {/* Schedule */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4">Schedule</h2>
 
-          {/* Row 2: Date + Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Date</label>
-              <div className="flex items-center border rounded-md px-3 py-2">
-                <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => {
                     setDate(e.target.value);
-                    clearError("date");
+                    setErrors((err) => ({ ...err, date: false }));
                   }}
-                  className="w-full outline-none"
+                  className={`w-full border rounded-lg p-3 ${
+                    errors.date ? errorClass : "border-gray-200"
+                  }`}
                 />
+                {errors.date && (
+                  <p className="text-sm text-red-500 mt-1">Date is required</p>
+                )}
               </div>
-              {errors.date && (
-                <p className="text-red-500 text-sm mt-1">{errors.date}</p>
-              )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Time</label>
-              <div className="flex items-center border rounded-md px-3 py-2">
-                <Clock className="w-4 h-4 text-gray-400 mr-2" />
+              <div>
                 <input
                   type="time"
                   value={time}
                   onChange={(e) => {
                     setTime(e.target.value);
-                    clearError("time");
+                    setErrors((err) => ({ ...err, time: false }));
                   }}
-                  className="w-full outline-none"
+                  className={`w-full border rounded-lg p-3 ${
+                    errors.time ? errorClass : "border-gray-200"
+                  }`}
                 />
+                {errors.time && (
+                  <p className="text-sm text-red-500 mt-1">Time is required</p>
+                )}
               </div>
-              {errors.time && (
-                <p className="text-red-500 text-sm mt-1">{errors.time}</p>
-              )}
             </div>
-          </div>
+          </section>
 
-          {/* Row 3: Seats + Vehicle */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Available Seats
-              </label>
-              <div className="flex items-center border rounded-md px-3 py-2">
-                <button
-                  type="button"
-                  onClick={decrement}
-                  className="px-2 py-1 bg-gray-100 rounded-md"
+          {/* Seats & Price */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4">Seats & Pricing</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3">
+                <span className="text-sm text-gray-600">Total seats</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={decrement}>
+                    <Minus size={16} />
+                  </button>
+                  <span className="font-semibold">{seatsTotal}</span>
+                  <button type="button" onClick={increment}>
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div
+                  className={`flex items-center border rounded-lg px-4 py-3 ${
+                    errors.price ? errorClass : "border-gray-200"
+                  }`}
                 >
-                  <Minus size={16} />
-                </button>
-                <span className="flex-1 text-center">{seats}</span>
-                <button
-                  type="button"
-                  onClick={increment}
-                  className="px-2 py-1 bg-gray-100 rounded-md"
-                >
-                  <Plus size={16} />
-                </button>
+                  <IndianRupee size={16} className="text-gray-400" />
+                  <input
+                    type="number"
+                    placeholder="Price per seat"
+                    value={price}
+                    onChange={(e) => {
+                      setPrice(e.target.value);
+                      setErrors((err) => ({ ...err, price: false }));
+                    }}
+                    className="w-full ml-2 outline-none"
+                  />
+                </div>
+                {errors.price && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Price per seat is required
+                  </p>
+                )}
               </div>
             </div>
+          </section>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Vehicle Details (Optional)
-              </label>
-              <div className="flex items-center border rounded-md px-3 py-2">
-                <Car className="w-4 h-4 text-gray-400 mr-2" />
-                <input
-                  type="text"
-                  value={vehicle}
-                  onChange={(e) => setVehicle(e.target.value)}
-                  placeholder="e.g., Blue Toyota Camry"
-                  className="w-full outline-none"
-                />
-              </div>
-            </div>
-          </div>
+          {/* Vehicle */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4">Vehicle</h2>
+            <input
+              type="text"
+              placeholder="e.g. Blue Toyota Camry"
+              value={vehicle}
+              onChange={(e) => setVehicle(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-3"
+            />
+          </section>
 
-          {/* Submit Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-3 rounded-full font-medium hover:bg-indigo-700 transition"
-            >
-              Post Ride
-            </button>
-          </div>
+          {/* Description */}
+          <section>
+            <h2 className="text-lg font-semibold mb-4">Notes</h2>
+            <textarea
+              placeholder="Anything passengers should know?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg p-3"
+            />
+          </section>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-full font-semibold transition"
+          >
+            Post Ride
+          </button>
         </form>
       </div>
     </div>

@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
   const navigate = useNavigate();
+
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-800">
-      <main className="flex-1 p-10 overflow-y-auto">
+    <div className="flex min-h-screen bg-gray-50 text-gray-800">
+      <main className="flex-1 p-10">
         <h1 className="text-3xl font-semibold mb-2">Welcome, John! 👋</h1>
         <p className="text-gray-500 mb-8">
           Your ridepooling dashboard is ready.
@@ -15,7 +16,7 @@ export default function Profile() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           <div className="bg-white shadow-sm rounded-2xl p-5">
             <img
-              src="../../public/offer.png"
+              src="/offer.png"
               alt="Offer a Ride"
               className="rounded-xl w-full h-50 object-cover mb-4"
             />
@@ -25,7 +26,7 @@ export default function Profile() {
             </p>
             <button
               onClick={() => navigate("/offer-ride")}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl font-medium transition"
+              className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl font-medium transition"
             >
               Offer Now
             </button>
@@ -33,7 +34,7 @@ export default function Profile() {
 
           <div className="bg-white shadow-sm rounded-2xl p-5">
             <img
-              src="../../public/book.png"
+              src="/book.png"
               alt="Find a Ride"
               className="rounded-xl w-full h-50 object-cover mb-4"
             />
@@ -42,8 +43,8 @@ export default function Profile() {
               Book a ride with a colleague or friend.
             </p>
             <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-medium transition"
               onClick={() => navigate("/find-ride")}
+              className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-medium transition"
             >
               Find a Ride
             </button>

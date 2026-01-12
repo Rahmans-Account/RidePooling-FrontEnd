@@ -11,12 +11,12 @@ export default function BookingsPage() {
     const fetchBookings = async () => {
       try {
         const token = localStorage.getItem("jwtToken"); // assuming you store JWT here
-        console.log("Fetching bookings with token:", token);
         const response = await axios.get("http://localhost:5003/api/bookings", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+        console.log("Bookings fetched:", response.data);
         setBookings(response.data.data || []);
       } catch (err) {
         console.error("Error fetching bookings:", err);
