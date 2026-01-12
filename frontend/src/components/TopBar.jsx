@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User } from "lucide-react";
+import { User, Bell, Search, Settings } from "lucide-react";
 import api from "../api/client";
 
 export default function TopBar() {
@@ -15,27 +15,72 @@ export default function TopBar() {
         const { data } = await api.get("/auth/me");
         setUser(data.data.user);
       } catch (err) {
-        // ignore header fetch errors
+        console.error("User fetch failed");
       }
     };
-
     fetchUser();
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   return (
-    <header className="flex items-center justify-between bg-white shadow-sm px-6 py-3 border-b border-gray-200">
-      <div className="text-xl font-semibold text-blue-600">
-        Going My way? Let’s ride together
+    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-10">
+      {/* Left side: Greeting & Search */}
+      <div className="flex items-center gap-12">
+        <div className="hidden lg:block">
+          <h1 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+            {getGreeting()}
+          </h1>
+          <p className="text-xl font-black text-slate-900">
+            {user ? `${user.name.split(' ')[0]}! 👋` : "Welcome back!"}
+          </p>
+        </div>
+
+        {/* Global Search */}
+        <div className="relative group hidden md:block">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+          <input 
+            type="text"
+            placeholder="Search for rides or destinations..."
+            className="pl-12 pr-6 py-2.5 bg-slate-50 border border-transparent rounded-2xl w-80 focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-sm font-medium"
+          />
+        </div>
       </div>
 
-      <div className="relative flex items-center gap-4">
+      {/* Right side: Actions & Profile */}
+      <div className="flex items-center gap-4">
+        {/* Notifications */}
+        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all">
+          <Bell size={20} />
+          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+        </button>
+
+        {/* Settings */}
+        <button 
+          onClick={() => navigate("/user-profile")}
+          className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
+        >
+          <Settings size={20} />
+        </button>
+
+        <div className="h-8 w-[1px] bg-slate-100 mx-2"></div>
+
+        {/* Profile Quick Link */}
         <Link 
           to="/user-profile" 
-          className="focus:outline-none hover:opacity-80 transition"
-          title="View Profile"
+          className="flex items-center gap-3 p-1.5 pl-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
         >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600 cursor-pointer">
-            <User size={20} />
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-bold text-slate-900 leading-none">{user?.name || "User"}</p>
+            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-tighter mt-1">Verified Rider</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-100">
+            {user?.name?.charAt(0) || <User size={18} />}
           </div>
         </Link>
       </div>
