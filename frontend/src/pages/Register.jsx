@@ -64,7 +64,7 @@ export default function Register() {
         );
         const { token } = response.data.data;
         localStorage.setItem("jwtToken", token);
-        navigate("/profile");
+        navigate("/dashboard");
       } catch (err) {
         const errorMessage =
           err.response?.data?.error?.message ||

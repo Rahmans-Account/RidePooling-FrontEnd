@@ -64,7 +64,7 @@ export default function FindRide() {
     <div className="min-h-screen bg-gray-50 px-10 py-8 relative">
       {/* Back */}
       <button
-        onClick={() => navigate("/profile")}
+        onClick={() => navigate("/dashboard")}
         className="cursor-pointer absolute top-6 left-6 flex items-center gap-2"
       >
         <ArrowLeft size={20} /> Back

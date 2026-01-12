@@ -6,7 +6,7 @@ export default function SideBar() {
   const location = useLocation();
 
   const navItems = [
-    { name: "Profile", icon: <User size={18} />, path: "/profile" },
+    { name: "Dashboard", icon: <User size={18} />, path: "/dashboard" },
     { name: "My Rides", icon: <Car size={18} />, path: "/my-rides" },
     { name: "Bookings", icon: <Book size={18} />, path: "/bookings" },
   ];

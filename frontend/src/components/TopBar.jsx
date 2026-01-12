@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
@@ -46,12 +47,20 @@ export default function TopBar() {
       </div>
 
       <div className="relative flex items-center gap-4">
-        <Link to="/profile" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition">
+        <Link
+          to="/user-profile"
+          className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition"
+        >
           Profile
         </Link>
 
-        <button onClick={() => setMenuOpen(!menuOpen)} className="focus:outline-none">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${avatar.bg} ${avatar.text}`}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="focus:outline-none"
+        >
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center ${avatar.bg} ${avatar.text}`}
+          >
             {avatar.emoji}
           </div>
         </button>
@@ -63,7 +72,9 @@ export default function TopBar() {
           >
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-sm text-gray-500">Signed in as</p>
-              <p className="font-semibold text-gray-800">{user?.name || "User"}</p>
+              <p className="font-semibold text-gray-800">
+                {user?.name || "User"}
+              </p>
               <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
 
