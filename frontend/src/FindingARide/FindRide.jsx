@@ -75,7 +75,7 @@ export default function FindRide() {
         {/* Header Section */}
         <div className="flex items-center justify-between mb-10">
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/dashboard")}
             className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-semibold"
           >
             <div className="p-2 rounded-xl bg-white shadow-sm border border-slate-100 group-hover:shadow-md transition-all">
