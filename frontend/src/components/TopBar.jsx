@@ -1,24 +1,11 @@
-/* eslint-disable no-unused-vars */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { User, Bell, Search, Settings } from "lucide-react";
 import api from "../api/client";
 
-const genderAvatar = {
-  male: { emoji: "🚹", bg: "bg-blue-100", text: "text-blue-700" },
-  female: { emoji: "🚺", bg: "bg-pink-100", text: "text-pink-700" },
-  other: { emoji: "✨", bg: "bg-purple-100", text: "text-purple-700" },
-};
-
 export default function TopBar() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
-
-  const avatar = useMemo(() => {
-    const key = (user?.gender || "other").toLowerCase();
-    return genderAvatar[key] || genderAvatar.other;
-  }, [user]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -28,76 +15,68 @@ export default function TopBar() {
         const { data } = await api.get("/auth/me");
         setUser(data.data.user);
       } catch (err) {
-        // ignore header fetch errors
+        console.error("User fetch failed", err);
       }
     };
-
     fetchUser();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("jwtToken");
-    navigate("/login");
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
   };
 
   return (
-    <header className="flex items-center justify-between bg-white shadow-sm px-6 py-3 border-b border-gray-200">
-      <div className="text-xl font-semibold text-blue-600">
-        Going My way? Let’s ride together
+    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-10">
+      {/* Left side: Greeting & Search */}
+      <div className="flex items-center gap-12">
+        <div className="hidden lg:block">
+          <h1 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+            {getGreeting()}
+          </h1>
+          <p className="text-xl font-black text-slate-900">
+            {user ? `${user.name.split(" ")[0]}! 👋` : "Welcome back!"}
+          </p>
+        </div>
       </div>
 
-      <div className="relative flex items-center gap-4">
-        <Link
-          to="/user-profile"
-          className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition"
-        >
-          Profile
-        </Link>
-
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="focus:outline-none"
-        >
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center ${avatar.bg} ${avatar.text}`}
-          >
-            {avatar.emoji}
-          </div>
+      {/* Right side: Actions & Profile */}
+      <div className="flex items-center gap-4">
+        {/* Notifications */}
+        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all">
+          <Bell size={20} />
+          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
         </button>
 
-        {menuOpen && (
-          <div
-            className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-            onMouseLeave={() => setMenuOpen(false)}
-          >
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm text-gray-500">Signed in as</p>
-              <p className="font-semibold text-gray-800">
-                {user?.name || "User"}
-              </p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-            </div>
+        {/* Settings */}
+        <button
+          onClick={() => navigate("/user-profile")}
+          className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
+        >
+          <Settings size={20} />
+        </button>
 
-            <Link
-              to="/profile"
-              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
-              onClick={() => setMenuOpen(false)}
-            >
-              <User size={18} />
-              Profile
-            </Link>
+        <div className="h-8 w-[1px] bg-slate-100 mx-2"></div>
 
-            <hr className="my-1" />
-
-            <button
-              onClick={handleLogout}
-              className="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
-            >
-              <LogOut size={18} />
-              Logout
-            </button>
+        {/* Profile Quick Link */}
+        <Link
+          to="/user-profile"
+          className="flex items-center gap-3 p-1.5 pl-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
+        >
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-bold text-slate-900 leading-none">
+              {user?.name || "User"}
+            </p>
+            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-tighter mt-1">
+              Verified Rider
+            </p>
           </div>
-        )}
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-100">
+            {user?.name?.charAt(0) || <User size={18} />}
+          </div>
+        </Link>
       </div>
     </header>
   );
