@@ -1,12 +1,12 @@
 import React from "react";
-import { User, Car, Book, LogOut } from "lucide-react";
+import { LayoutDashboard, Car, Book, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 export default function SideBar() {
   const location = useLocation();
 
   const navItems = [
-    { name: "Profile", icon: <User size={18} />, path: "/profile" },
+    { name: "Dashboard", icon: <LayoutDashboard size={18} />, path: "/profile" },
     { name: "My Rides", icon: <Car size={18} />, path: "/my-rides" },
     { name: "Bookings", icon: <Book size={18} />, path: "/bookings" },
   ];
