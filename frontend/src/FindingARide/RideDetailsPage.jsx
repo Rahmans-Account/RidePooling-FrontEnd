@@ -2,96 +2,123 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Calendar, Users, Car, ArrowLeft } from "lucide-react";
 import RouteMap from "../components/RouteMap";
+import axios from "axios";
 
 export default function RideDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [ride, setRide] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const mockRides = [
-        {
-          id: "1",
-          driver: "Jane Doe",
-          rating: 4.9,
-          date: "October 26, 2023, 8:00 AM",
-          seats: 2,
-          vehicle: "Toyota Camry, Blue",
-          pickup: "123 Main St, San Francisco, CA",
-          dropoff: "456 Grand Ave, Los Angeles, CA",
-          from: { lat: 37.7749, lng: -122.4194 },
-          to: { lat: 34.0522, lng: -118.2437 },
-        },
-        {
-          id: "2",
-          driver: "John Smith",
-          rating: 4.8,
-          date: "October 28, 2023, 9:00 AM",
-          seats: 1,
-          vehicle: "Honda Civic, Black",
-          pickup: "Park Street, Hyderabad, Telangana",
-          dropoff: "Charminar, Hyderabad, Telangana",
-          from: { lat: 17.4065, lng: 78.4772 },
-          to: { lat: 17.3616, lng: 78.4747 },
-        },
-      ];
+    const fetchRide = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5003/api/rides/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
 
-      const found = mockRides.find((r) => r.id === id);
-      setRide(found || null);
-      setLoading(false);
-    }, 1000);
+        setRide(res.data.data);
+      } catch (err) {
+        console.error("Failed to fetch ride:", err);
+        setRide(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRide();
   }, [id]);
 
-  if (loading)
+  /* -------------------- GUARDS -------------------- */
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600 text-lg">
         Loading ride details...
       </div>
     );
+  }
 
-  if (!ride)
+  if (
+    !ride ||
+    !ride.originCoords ||
+    !ride.destinationCoords ||
+    !Array.isArray(ride.originCoords.coordinates) ||
+    !Array.isArray(ride.destinationCoords.coordinates)
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600 text-lg">
         Ride not found.
       </div>
     );
+  }
+
+  /* ---------------- SAFE TO USE DATA BELOW ---------------- */
+
+  const date = new Date(ride.dateTime);
+
+  const formattedDate = date.toLocaleDateString([], {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const formattedTime = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const fromCoords = {
+    lat: ride.originCoords.coordinates[1],
+    lng: ride.originCoords.coordinates[0],
+  };
+
+  const toCoords = {
+    lat: ride.destinationCoords.coordinates[1],
+    lng: ride.destinationCoords.coordinates[0],
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 flex flex-col md:flex-row gap-8">
       {/* Left side */}
       <div className="flex-1 space-y-6">
-        {/* 🔙 Back button */}
+        {/* Back */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-indigo-600 hover:underline"
+          className="flex items-center gap-2 text-indigo-600 hover:underline cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" /> Back to Rides
         </button>
 
-        {/* Driver Card */}
+        {/* Driver */}
         <div className="bg-white rounded-2xl shadow p-6 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-gray-200" />
+          <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">
+            {ride.driverId?.name?.[0] || "?"}
+          </div>
           <div>
-            <h2 className="text-lg font-semibold">{ride.driver}</h2>
-            <p className="text-yellow-500 text-sm">⭐ {ride.rating}</p>
+            <h2 className="text-lg font-semibold">{ride.driverId?.name}</h2>
+            <p className="text-yellow-500 text-sm">
+              ⭐ {ride.driverId?.rating?.toFixed(1)}
+            </p>
           </div>
         </div>
 
-        {/* Map section */}
+        {/* Map */}
         <div className="bg-white rounded-2xl shadow overflow-hidden">
-          <RouteMap from={ride.from} to={ride.to} />
+          <RouteMap from={fromCoords} to={toCoords} />
 
           <div className="p-5 border-t">
             <div className="mb-3">
               <p className="text-sm font-medium text-gray-500">Pickup</p>
-              <p className="text-gray-800">{ride.pickup}</p>
+              <p className="text-gray-800">{ride.origin}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Drop-off</p>
-              <p className="text-gray-800">{ride.dropoff}</p>
+              <p className="text-gray-800">{ride.destination}</p>
             </div>
           </div>
         </div>
@@ -104,21 +131,27 @@ export default function RideDetailsPage() {
 
           <div className="flex items-center gap-3 text-gray-700">
             <Calendar className="w-5 h-5 text-indigo-600" />
-            <span>{ride.date}</span>
+            <span>
+              {formattedDate} · {formattedTime}
+            </span>
           </div>
 
           <div className="flex items-center gap-3 text-gray-700">
             <Users className="w-5 h-5 text-indigo-600" />
-            <span>{ride.seats} seat(s) available</span>
+            <span>{ride.seatsAvailable} seat(s) available</span>
           </div>
 
           <div className="flex items-center gap-3 text-gray-700">
             <Car className="w-5 h-5 text-indigo-600" />
-            <span>{ride.vehicle}</span>
+            <span>{ride.vehicle || "Vehicle not specified"}</span>
+          </div>
+
+          <div className="text-indigo-600 font-semibold text-lg">
+            ₹{ride.price}
           </div>
         </div>
 
-        <button className="mt-6 bg-indigo-600 text-white py-3 rounded-full font-semibold hover:bg-indigo-700 transition">
+        <button className="mt-6 bg-indigo-600 text-white py-3 rounded-full font-semibold hover:bg-indigo-700 transition cursor-pointer">
           Book Ride
         </button>
       </div>

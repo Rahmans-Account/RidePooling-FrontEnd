@@ -25,7 +25,6 @@ export default function FindRide() {
 
     try {
       setLoading(true);
-      console.log("currentLocation:", currentLocation);
 
       const response = await axios.get(
         "http://localhost:5003/api/rides/search",
@@ -41,9 +40,10 @@ export default function FindRide() {
           },
         }
       );
+      console.log("Rides fetched:", response.data);
 
       // backend response: { success, data, meta }
-      setRides(response.data.data);
+      setRides(response.data.data || []);
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.message || "Failed to fetch rides");
