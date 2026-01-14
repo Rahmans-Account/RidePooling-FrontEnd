@@ -7,24 +7,26 @@ import {
 } from "lucide-react";
 import RouteMap from "../components/RouteMap";
 import axios from "axios";
+import api from "../api/client";
+import bookingService from "../api/bookingService";
 
 export default function RideDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [ride, setRide] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState(false);
+  const [booked, setBooked] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     const fetchRide = async () => {
       try {
-        const res = await axios.get(`http://localhost:5003/api/rides/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("jwtToken")}`, // Consistent token naming
-          },
-        });
+        const res = await api.get(`/rides/${id}`);
         setRide(res.data.data);
       } catch (err) {
         console.error("Failed to fetch ride:", err);
+        setMessage({ type: 'error', text: 'Failed to load ride details' });
       } finally {
         setLoading(false);
       }
@@ -60,6 +62,26 @@ export default function RideDetailsPage() {
 
   const fromCoords = { lat: ride.originCoords.coordinates[1], lng: ride.originCoords.coordinates[0] };
   const toCoords = { lat: ride.destinationCoords.coordinates[1], lng: ride.destinationCoords.coordinates[0] };
+
+  const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
+
+  const handleBook = async () => {
+    setBooking(true);
+    try {
+      await bookingService.bookRide(id);
+      setBooked(true);
+      setMessage({ type: 'success', text: 'Ride booked successfully!' });
+      setTimeout(() => navigate('/bookings'), 2000);
+    } catch (err) {
+      console.error("Booking failed:", err);
+      setMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Booking failed. Please try again.' 
+      });
+    } finally {
+      setBooking(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-[Poppins]">
@@ -162,7 +184,7 @@ export default function RideDetailsPage() {
                 <div className="space-y-6 mb-10">
                   <DetailItem icon={<Calendar />} label="Date" value={formattedDate} />
                   <DetailItem icon={<Clock />} label="Time" value={formattedTime} />
-                  <DetailItem icon={<Users />} label="Availability" value={`${ride.seatsAvailable} Seats Left`} />
+                  <DetailItem icon={<Users />} label="Availability" value={`${seatsLeft} Seats Left`} />
                   <DetailItem icon={<Car />} label="Vehicle" value={ride.vehicle || "Standard Car"} />
                 </div>
 
@@ -181,10 +203,39 @@ export default function RideDetailsPage() {
                   </div>
                 </div>
 
-                <button className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group text-lg">
-                  Book This Ride
-                  <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                <button 
+                  onClick={handleBook}
+                  disabled={booking || booked || seatsLeft <= 0}
+                  className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {booking ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Booking...
+                    </>
+                  ) : booked ? (
+                    <>
+                      ✓ Booked!
+                    </>
+                  ) : seatsLeft <= 0 ? (
+                    "No Seats Available"
+                  ) : (
+                    <>
+                      Book This Ride
+                      <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
                 </button>
+
+                {message && (
+                  <div className={`mt-4 p-4 rounded-2xl text-white text-sm font-bold ${
+                    message.type === 'success' 
+                      ? 'bg-emerald-500/20 text-emerald-300' 
+                      : 'bg-rose-500/20 text-rose-300'
+                  }`}>
+                    {message.text}
+                  </div>
+                )}
               </div>
 
               {/* Trust Footer */}

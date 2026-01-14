@@ -21,6 +21,9 @@ export default function RideCard({ ride }) {
   const time = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const day = dateObj.toLocaleDateString([], { day: "numeric", month: "short" });
 
+  // Calculate actual seats left
+  const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
+
   return (
     <div
       onClick={handleClick}
@@ -93,10 +96,18 @@ export default function RideCard({ ride }) {
 
       {/* Bottom Section: Seats & Action */}
       <div className="flex items-center justify-between pt-5 border-t border-slate-50">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl">
-          <Users size={14} className="text-slate-400" />
-          <span className="text-[11px] font-bold text-slate-600">
-            {ride.seatsAvailable} Seat{ride.seatsAvailable !== 1 ? 's' : ''} left
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${
+          seatsLeft > 0 
+            ? 'bg-emerald-50' 
+            : 'bg-red-50'
+        }`}>
+          <Users size={14} className={seatsLeft > 0 ? 'text-emerald-600' : 'text-red-600'} />
+          <span className={`text-[11px] font-bold ${
+            seatsLeft > 0 
+              ? 'text-emerald-700' 
+              : 'text-red-700'
+          }`}>
+            {seatsLeft > 0 ? `${seatsLeft} Seat${seatsLeft !== 1 ? 's' : ''} left` : 'No seats available'}
           </span>
         </div>
 
