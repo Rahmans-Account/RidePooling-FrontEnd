@@ -59,7 +59,7 @@ export default function OfferRide() {
       await axios.post("http://localhost:5003/api/rides", payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem("jwtToken")}` },
       });
-      navigate("/profile"); // Navigating back to the new dashboard
+      navigate("/my-rides"); // Navigating back to the new dashboard
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create ride");
     } finally {

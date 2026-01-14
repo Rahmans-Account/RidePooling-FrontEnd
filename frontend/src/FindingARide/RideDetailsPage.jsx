@@ -19,7 +19,6 @@ export default function RideDetailsPage() {
             Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
           },
         });
-
         setRide(res.data.data);
       } catch (err) {
         console.error("Failed to fetch ride:", err);
