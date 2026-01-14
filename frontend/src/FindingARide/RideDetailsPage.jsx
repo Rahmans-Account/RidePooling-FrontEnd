@@ -16,7 +16,7 @@ export default function RideDetailsPage() {
       try {
         const res = await axios.get(`http://localhost:5003/api/rides/${id}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
           },
         });
 
@@ -80,6 +80,47 @@ export default function RideDetailsPage() {
   const toCoords = {
     lat: ride.destinationCoords.coordinates[1],
     lng: ride.destinationCoords.coordinates[0],
+  };
+  const handleBookRide = async (rideId, seats = 1) => {
+    try {
+      const token = localStorage.getItem("jwtToken");
+
+      if (!token) {
+        alert("Please login to book a ride");
+        return;
+      }
+
+      const response = await axios.post(
+        `http://localhost:5003/api/bookings/${rideId}/book`,
+        { seats },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Ride booked successfully!");
+      console.log("Booking:", response.data.data);
+      navigate("/bookings");
+      // OPTIONAL: redirect or refetch ride
+      // navigate("/bookings");
+    } catch (err) {
+      console.error("Booking failed:", err);
+
+      // Business logic errors
+      if (err.response?.status === 409) {
+        alert("Not enough seats or ride is no longer open");
+        return;
+      }
+
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        return;
+      }
+
+      alert("Failed to book ride. Please try again.", err.message);
+    }
   };
 
   return (
@@ -151,7 +192,10 @@ export default function RideDetailsPage() {
           </div>
         </div>
 
-        <button className="mt-6 bg-indigo-600 text-white py-3 rounded-full font-semibold hover:bg-indigo-700 transition cursor-pointer">
+        <button
+          className="mt-6 bg-indigo-600 text-white py-3 rounded-full font-semibold hover:bg-indigo-700 transition cursor-pointer"
+          onClick={() => handleBookRide(id, 1)}
+        >
           Book Ride
         </button>
       </div>
