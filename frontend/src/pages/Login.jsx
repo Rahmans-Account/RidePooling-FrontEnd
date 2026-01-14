@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   ChevronRight 
 } from "lucide-react";
-import axios from "axios";
+import authService from "../services/authService";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -43,16 +43,13 @@ export default function Login() {
     if (validate()) {
       setLoading(true);
       try {
-        const response = await axios.post(
-          "http://localhost:5003/api/auth/login",
-          { email: form.email, password: form.password }
-        );
-        const { token } = response.data.data;
-        localStorage.setItem("jwtToken", token);
-        navigate("/dashboard");
+        const response = await authService.login(form.email, form.password);
+        if (response.success) {
+          navigate("/dashboard");
+        }
       } catch (err) {
         const errorMessage =
-          err.response?.data?.error?.message ||
+          err.message ||
           "Invalid email or password. Please try again.";
         setServerError(errorMessage);
       } finally {

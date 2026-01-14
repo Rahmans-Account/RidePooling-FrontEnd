@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   ChevronRight 
 } from "lucide-react";
-import axios from "axios";
+import authService from "../services/authService";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -58,16 +58,13 @@ export default function Register() {
     if (validate()) {
       setLoading(true);
       try {
-        const response = await axios.post(
-          "http://localhost:5003/api/auth/register",
-          form
-        );
-        const { token } = response.data.data;
-        localStorage.setItem("jwtToken", token);
-        navigate("/dashboard");
+        const response = await authService.register(form);
+        if (response.success) {
+          navigate("/dashboard");
+        }
       } catch (err) {
         const errorMessage =
-          err.response?.data?.error?.message ||
+          err.message ||
           "Registration failed. Email might already exist.";
         setServerError(errorMessage);
       } finally {
