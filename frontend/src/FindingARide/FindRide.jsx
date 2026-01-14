@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import AutoCompleteLocation from "../components/AutoCompleteLocation";
 import RideCard from "./RideCard";
-import axios from "axios";
+import rideService from "../services/rideService";
 
 export default function FindRide() {
   const navigate = useNavigate();
@@ -35,23 +35,17 @@ export default function FindRide() {
     try {
       setLoading(true);
       setHasSearched(true);
-      const response = await axios.get(
-        "http://localhost:5003/api/rides/search",
-        {
-          params: {
-            lat: currentLocation.lat,
-            lng: currentLocation.lng,
-            date,
-            minSeats,
-            page: 1,
-            limit: 12,
-            sort: "dateTime",
-          },
-        }
-      );
-      setRides(response.data.data);
+      const response = await rideService.getAllRides({
+        departureDate: date,
+        minSeats: minSeats,
+      });
+      if (response.success) {
+        setRides(response.data.rides);
+      } else {
+        alert(response.message || "Failed to fetch rides");
+      }
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to fetch rides");
+      alert(error.message || "Failed to fetch rides");
     } finally {
       setLoading(false);
     }

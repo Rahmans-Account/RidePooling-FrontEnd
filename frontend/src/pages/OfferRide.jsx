@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { 
   Minus, Plus, ArrowLeft, IndianRupee, 
   MapPin, Calendar, Clock, Car, 
-  FileText, Loader2, ChevronRight, Navigation 
+  FileText, Loader2, ChevronRight, Navigation,
+  CheckCircle, AlertCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AutoCompleteLocation from "../components/AutoCompleteLocation";
-import axios from "axios";
+import rideService from "../services/rideService";
 
 export default function OfferRide() {
   const navigate = useNavigate();
@@ -21,14 +22,16 @@ export default function OfferRide() {
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
-  const increment = () => setSeatsTotal((s) => s + 1);
+  const increment = () => setSeatsTotal((s) => (s < 7 ? s + 1 : s));
   const decrement = () => seatsTotal > 1 && setSeatsTotal((s) => s - 1);
 
   const validate = () => {
     const e = {};
-    if (!pickup?.lat || !pickup?.lng) e.pickup = true;
-    if (!destination?.lat || !destination?.lng) e.destination = true;
+    if (!pickup?.latitude || !pickup?.longitude) e.pickup = true;
+    if (!destination?.latitude || !destination?.longitude) e.destination = true;
     if (!date) e.date = true;
     if (!time) e.time = true;
     if (!price || Number(price) <= 0) e.price = true;
@@ -39,29 +42,47 @@ export default function OfferRide() {
     e.preventDefault();
     const validationErrors = validate();
     setErrors(validationErrors);
+    setError("");
+    setSuccess("");
     
     if (Object.keys(validationErrors).length > 0) return;
 
     setLoading(true);
-    const payload = {
-      origin: pickup.name,
-      destination: destination.name,
-      dateTime: new Date(`${date}T${time}`),
-      seatsTotal,
-      price: Number(price),
-      vehicle,
-      description,
-      originCoords: { type: "Point", coordinates: [pickup.lng, pickup.lat] },
-      destinationCoords: { type: "Point", coordinates: [destination.lng, destination.lat] },
+    
+    const departureDateTime = new Date(`${date}T${time}`);
+    
+    const rideData = {
+      startLocation: {
+        address: pickup.name,
+        latitude: pickup.latitude,
+        longitude: pickup.longitude,
+      },
+      endLocation: {
+        address: destination.name,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+      },
+      departureTime: departureDateTime,
+      availableSeats: seatsTotal,
+      pricePerSeat: Number(price),
+      vehicleInfo: {
+        description: vehicle,
+      },
+      description: description,
     };
 
     try {
-      await axios.post("http://localhost:5003/api/rides", payload, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("jwtToken")}` },
-      });
-      navigate("/profile"); // Navigating back to the new dashboard
+      const response = await rideService.createRide(rideData);
+      if (response.success) {
+        setSuccess("Ride posted successfully!");
+        setTimeout(() => {
+          navigate("/my-rides");
+        }, 2000);
+      } else {
+        setError(response.message || "Failed to create ride");
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create ride");
+      setError(err.message || "Failed to create ride");
     } finally {
       setLoading(false);
     }
@@ -93,6 +114,18 @@ export default function OfferRide() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Status Messages */}
+          {success && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-4">
+              <CheckCircle size={18} /> {success}
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-4">
+              <AlertCircle size={18} /> {error}
+            </div>
+          )}
           {/* Card 1: Route */}
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white">
             <div className="flex items-center gap-3 mb-8">

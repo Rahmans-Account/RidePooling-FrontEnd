@@ -4,57 +4,36 @@ import {
   Car, MapPin, Calendar, Clock, 
   Trash2, ChevronRight, Loader2, 
   AlertCircle, Plus, MoreHorizontal,
-  IndianRupee, Users, ArrowRight
+  IndianRupee, Users, ArrowRight,
+  ArrowLeft, Edit2, CheckCircle
 } from "lucide-react";
-import axios from "axios";
+import { useRide } from "../hooks/useRide";
 
 export default function MyRidesPage() {
-  const [rides, setRides] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("active"); // 'active' or 'history'
   const navigate = useNavigate();
+  const { myRides, loading, error, fetchMyRides, cancelRide } = useRide();
+  const [cancellingId, setCancellingId] = useState(null);
+  const [activeTab, setActiveTab] = useState("active");
 
   useEffect(() => {
-    fetchRides();
+    fetchMyRides();
   }, []);
 
-  const fetchRides = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("jwtToken"); // Consistently using jwtToken
-      const response = await axios.get("http://localhost:5003/api/rides/my-rides", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRides(response.data.data || []);
-    } catch (err) {
-      setError(err.response?.data?.error?.message || "Failed to load your rides");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCancel = async (rideId) => {
-    if (!window.confirm("Are you sure you want to cancel this ride? Passengers will be notified.")) return;
+    if (!window.confirm("Are you sure you want to cancel this ride?")) return;
     
-    try {
-      const token = localStorage.getItem("jwtToken");
-      await axios.put(`http://localhost:5003/api/rides/${rideId}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setRides((prev) =>
-        prev.map((r) => (r._id === rideId ? { ...r, status: "Cancelled" } : r))
-      );
-    } catch (err) {
-      alert(err.response?.data?.error?.message || "Failed to cancel ride");
+    setCancellingId(rideId);
+    const success = await cancelRide(rideId);
+    setCancellingId(null);
+    if (success) {
+      await fetchMyRides();
     }
   };
 
   // Filter rides based on tab
-  const filteredRides = rides.filter(ride => {
-    if (activeTab === "active") return ride.status === "Scheduled" || ride.status === "Ongoing";
-    return ride.status === "Completed" || ride.status === "Cancelled";
+  const filteredRides = myRides.filter(ride => {
+    if (activeTab === "active") return ride.rideStatus === "active";
+    return ride.rideStatus === "completed" || ride.rideStatus === "cancelled";
   });
 
   if (loading) {
@@ -72,17 +51,23 @@ export default function MyRidesPage() {
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-medium text-sm"
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">My Offered Rides</h1>
             <p className="text-slate-500 mt-2 font-medium">Manage your scheduled commutes and history</p>
           </div>
           
-          <Link 
-            to="/offer-ride"
+          <button 
+            onClick={() => navigate("/offer-ride")}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all active:scale-95 text-sm"
           >
             <Plus size={18} /> Offer New Ride
-          </Link>
+          </button>
         </div>
 
         {/* Tab Switcher */}
@@ -105,7 +90,12 @@ export default function MyRidesPage() {
         {filteredRides.length > 0 ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {filteredRides.map((ride) => (
-              <RideCard key={ride._id} ride={ride} onCancel={handleCancel} />
+              <RideCard 
+                key={ride._id} 
+                ride={ride} 
+                onCancel={handleCancel}
+                isCancelling={cancellingId === ride._id}
+              />
             ))}
           </div>
         ) : (
@@ -116,9 +106,12 @@ export default function MyRidesPage() {
             <h3 className="text-xl font-bold text-slate-900">No rides found</h3>
             <p className="text-slate-500 mt-2 mb-8 max-w-xs mx-auto">You don't have any {activeTab} rides at the moment.</p>
             {activeTab === 'active' && (
-              <Link to="/offer-ride" className="text-indigo-600 font-black flex items-center justify-center gap-2 hover:gap-3 transition-all">
+              <button 
+                onClick={() => navigate("/offer-ride")}
+                className="text-indigo-600 font-black flex items-center justify-center gap-2 hover:gap-3 transition-all"
+              >
                 Post your first ride <ArrowRight size={18} />
-              </Link>
+              </button>
             )}
           </div>
         )}
@@ -127,9 +120,9 @@ export default function MyRidesPage() {
   );
 }
 
-function RideCard({ ride, onCancel }) {
-  const isCancelled = ride.status === "Cancelled";
-  const isCompleted = ride.status === "Completed";
+function RideCard({ ride, onCancel, isCancelling }) {
+  const isCancelled = ride.rideStatus === "cancelled";
+  const isCompleted = ride.rideStatus === "completed";
   
   return (
     <div className={`bg-white rounded-[2.5rem] border ${isCancelled ? 'border-slate-100 opacity-75' : 'border-white'} shadow-[0_10px_40px_rgba(0,0,0,0.03)] overflow-hidden group hover:shadow-xl transition-all`}>
@@ -137,14 +130,14 @@ function RideCard({ ride, onCancel }) {
         {/* Card Header: Status & Price */}
         <div className="flex justify-between items-start mb-8">
           <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-            ride.status === 'Scheduled' ? 'bg-indigo-50 text-indigo-600' : 
-            ride.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+            ride.rideStatus === 'active' ? 'bg-indigo-50 text-indigo-600' : 
+            ride.rideStatus === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
           }`}>
-            {ride.status}
+            {ride.rideStatus}
           </div>
           <div className="flex items-center gap-1 text-slate-900">
             <IndianRupee size={16} className="text-slate-400" />
-            <span className="text-xl font-black">{ride.price}</span>
+            <span className="text-xl font-black">{ride.pricePerSeat}</span>
             <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">/ Seat</span>
           </div>
         </div>
@@ -159,11 +152,11 @@ function RideCard({ ride, onCancel }) {
           <div className="flex-1 space-y-5">
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Pickup</p>
-              <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{ride.origin}</h4>
+              <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{ride.startLocation.address}</h4>
             </div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Destination</p>
-              <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{ride.destination}</h4>
+              <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{ride.endLocation.address}</h4>
             </div>
           </div>
         </div>
@@ -172,15 +165,15 @@ function RideCard({ ride, onCancel }) {
         <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-2xl mb-8">
           <div className="text-center border-r border-slate-200">
             <Calendar size={14} className="mx-auto mb-1 text-slate-400" />
-            <p className="text-[10px] font-bold text-slate-900">{new Date(ride.dateTime).toLocaleDateString()}</p>
+            <p className="text-[10px] font-bold text-slate-900">{new Date(ride.departureTime).toLocaleDateString()}</p>
           </div>
           <div className="text-center border-r border-slate-200">
             <Clock size={14} className="mx-auto mb-1 text-slate-400" />
-            <p className="text-[10px] font-bold text-slate-900">{new Date(ride.dateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+            <p className="text-[10px] font-bold text-slate-900">{new Date(ride.departureTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
           </div>
           <div className="text-center">
             <Users size={14} className="mx-auto mb-1 text-slate-400" />
-            <p className="text-[10px] font-bold text-slate-900">{ride.seatsTotal} Seats</p>
+            <p className="text-[10px] font-bold text-slate-900">{ride.availableSeats} Seats</p>
           </div>
         </div>
 
@@ -189,7 +182,7 @@ function RideCard({ ride, onCancel }) {
           <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400">
             <Car size={16} />
           </div>
-          <p className="text-xs font-medium text-slate-500 italic">"{ride.vehicle || 'No vehicle details'}"</p>
+          <p className="text-xs font-medium text-slate-500 italic">"{ride.vehicleInfo?.description || 'No vehicle details'}"</p>
         </div>
 
         {/* Actions */}
@@ -197,9 +190,15 @@ function RideCard({ ride, onCancel }) {
           <div className="flex gap-3">
             <button 
               onClick={() => onCancel(ride._id)}
-              className="flex-1 py-3 px-4 rounded-xl border border-rose-100 text-rose-500 text-xs font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+              disabled={isCancelling}
+              className="flex-1 py-3 px-4 rounded-xl border border-rose-100 text-rose-500 text-xs font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Trash2 size={14} /> Cancel Ride
+              {isCancelling ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+              Cancel Ride
             </button>
             <button className="flex-1 py-3 px-4 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-indigo-600 shadow-lg shadow-slate-100 transition-all flex items-center justify-center gap-2 group">
               View Details <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
