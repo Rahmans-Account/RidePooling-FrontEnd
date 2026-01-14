@@ -10,6 +10,7 @@ import OfferRide from "./pages/OfferRide";
 import FindRide from "./FindingARide/FindRide";
 import RideDetailsPage from "./FindingARide/RideDetailsPage";
 import UserProfile from "./pages/UserProfile";
+import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 import Layout from "./components/Layout";
 import "leaflet/dist/leaflet.css";
 
@@ -67,6 +68,14 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <UserProfile />
+      </Layout>
+    ),
+  },
+  {
+    path: "/payment-history",
+    element: (
+      <Layout>
+        <PaymentHistoryPage />
       </Layout>
     ),
   },

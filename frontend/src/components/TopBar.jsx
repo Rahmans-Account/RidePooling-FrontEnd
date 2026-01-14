@@ -45,9 +45,12 @@ export default function TopBar() {
       {/* Right side: Actions & Profile */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+        <button 
+          onClick={() => navigate("/payment-history")}
+          className="relative p-2.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
+          title="Payment History"
+        >
+          💳
         </button>
 
         {/* Settings */}

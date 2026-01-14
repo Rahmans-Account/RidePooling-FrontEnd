@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import RouteMap from "../components/RouteMap";
 import RideReview from "../components/RideReview";
+import CheckoutModal from "../components/CheckoutModal";
 import axios from "axios";
 import api from "../api/client";
 import bookingService from "../api/bookingService";
@@ -22,6 +23,7 @@ export default function RideDetailsPage() {
   const [message, setMessage] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [driverRating, setDriverRating] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
     const fetchRide = async () => {
@@ -77,25 +79,32 @@ export default function RideDetailsPage() {
   const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
 
   const handleBook = async () => {
-    setBooking(true);
-    try {
-      await bookingService.bookRide(id);
-      setBooked(true);
-      setMessage({ type: 'success', text: 'Ride booked successfully!' });
-      setTimeout(() => navigate('/bookings'), 2000);
-    } catch (err) {
-      console.error("Booking failed:", err);
-      setMessage({ 
-        type: 'error', 
-        text: err.response?.data?.message || 'Booking failed. Please try again.' 
-      });
-    } finally {
-      setBooking(false);
-    }
+    setShowCheckout(true); // Open checkout modal instead of direct booking
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-[Poppins]">
+      {/* Checkout Modal */}
+      <CheckoutModal 
+        isOpen={showCheckout}
+        ride={ride}
+        onClose={() => setShowCheckout(false)}
+        onSuccess={async (payment) => {
+          // Book the ride after successful payment
+          try {
+            await bookingService.bookRide(id);
+            setBooked(true);
+            setMessage({ type: 'success', text: 'Payment successful! Ride booked.' });
+            setTimeout(() => navigate('/bookings'), 2000);
+          } catch (err) {
+            setMessage({ 
+              type: 'error', 
+              text: err.response?.data?.message || 'Booking failed after payment.' 
+            });
+          }
+        }}
+      />
+
       {/* Top Floating Navigation */}
       <div className="fixed top-6 left-6 z-50">
         <button
