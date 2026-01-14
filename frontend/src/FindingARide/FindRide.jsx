@@ -45,7 +45,11 @@ export default function FindRide() {
             page: 1,
             limit: 12,
             sort: "dateTime",
+            
           },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("jwtToken")}`
+         }
         }
       );
       setRides(response.data.data);
