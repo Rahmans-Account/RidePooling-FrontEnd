@@ -10,7 +10,7 @@ import {
   Car,
   Calendar,
 } from "lucide-react";
-import api from "../api/client";
+import authService from "../services/authService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -19,13 +19,12 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchName = async () => {
       try {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) return;
-        const { data } = await api.get("/auth/me");
-        const name = data?.data?.user?.name;
-        if (name) setDisplayName(name.split(" ")[0]);
+        if (!authService.isAuthenticated()) return;
+        const user = authService.getCurrentUser();
+        if (user?.name) {
+          setDisplayName(user.name.split(" ")[0]);
+        }
       } catch (err) {
-        // fail silently
         console.error("Failed to fetch user name:", err);
       }
     };

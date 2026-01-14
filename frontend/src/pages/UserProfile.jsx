@@ -4,7 +4,7 @@ import {
   Loader2, Mail, Phone, MapPin, Shield, Edit2, Save, X, 
   User, CheckCircle, AlertCircle, Camera, Calendar, ArrowLeft
 } from "lucide-react";
-import api from "../api/client";
+import authService from "../services/authService";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -30,26 +30,22 @@ export default function UserProfile() {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("jwtToken");
-      if (!token) {
+      if (!authService.isAuthenticated()) {
         navigate("/login");
         return;
       }
-      const { data } = await api.get("/auth/me");
-      const userData = data.data.user;
-      setUser(userData);
-      setFormData({
-        name: userData.name || "",
-        phone: userData.phone || "",
-        city: userData.city || "",
-        gender: userData.gender || "other",
-      });
+      const response = await authService.getProfile();
+      if (response.success) {
+        const userData = response.data.user;
+        setUser(userData);
+        setFormData({
+          name: userData.name || "",
+          phone: userData.phone || "",
+          city: userData.city || "",
+          gender: userData.gender || "other",
+        });
+      }
     } catch (err) {
-      if (err.response?.status === 401) {
-        localStorage.removeItem("jwtToken");
-        navigate("/login");
-        return;
-      }
       setError("Unable to sync profile data.");
     } finally {
       setLoading(false);
@@ -66,13 +62,15 @@ export default function UserProfile() {
     setSuccess("");
     setError("");
     try {
-      const { data } = await api.put("/auth/profile", formData);
-      setUser(data.data.user);
-      setSuccess("Profile settings updated!");
-      setEditing(false);
-      setTimeout(() => setSuccess(""), 4000);
+      const response = await authService.updateProfile(formData);
+      if (response.success) {
+        setUser(response.data.user);
+        setSuccess("Profile settings updated!");
+        setEditing(false);
+        setTimeout(() => setSuccess(""), 4000);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save changes.");
+      setError(err.message || "Failed to save changes.");
     } finally {
       setSaving(false);
     }
