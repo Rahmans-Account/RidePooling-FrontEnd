@@ -2,15 +2,13 @@ import React from "react";
 
 export default function MyRidesTable({ rides = [], onCancel }) {
   const canCancel = (ride) =>
-    ride.status === "open" &&
-    new Date(ride.dateTime).getTime() > Date.now();
+    ride.status === "open" && new Date(ride.dateTime).getTime() > Date.now();
 
   const statusStyle = {
     open: "text-blue-600 bg-blue-100",
     completed: "text-green-600 bg-green-100",
     cancelled: "text-red-600 bg-red-100",
   };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">My Rides</h2>
@@ -43,18 +41,19 @@ export default function MyRidesTable({ rides = [], onCancel }) {
             {rides.map((ride) => (
               <tr key={ride._id} className="border-t">
                 <td className="px-6 py-4 font-medium">
-                  {ride.origin.split(",")[0]} →{" "}
-                  {ride.destination.split(",")[0]}
+                  {ride.origin.split(",")[0]} → {ride.destination.split(",")[0]}
                 </td>
                 <td className="px-6 py-4">
                   {new Date(ride.dateTime).toLocaleString()}
                 </td>
                 <td className="px-6 py-4">
-                  {ride.seatsAvailable}/{ride.seatsTotal}
+                  {ride.seatsTotal}/{ride.seatsTotal}
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${statusStyle[ride.status]}`}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      statusStyle[ride.status]
+                    }`}
                   >
                     {ride.status}
                   </span>

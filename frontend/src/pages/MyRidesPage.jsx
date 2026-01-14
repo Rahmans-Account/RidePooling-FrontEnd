@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import { ArrowUp, ArrowDown, ChevronsUpDown, Users } from "lucide-react";
+import { Users, Search } from "lucide-react";
 
 export default function MyRidesPage() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [expandedRideId, setExpandedRideId] = useState(null);
-  const [bookers, setBookers] = useState([]);
+  const [booking, setBooking] = useState(null);
 
-  const [sortConfig, setSortConfig] = useState({
-    key: "dateTime",
-    direction: "asc",
-  });
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchRides();
@@ -32,62 +29,54 @@ export default function MyRidesPage() {
     }
   };
 
-  // Dummy bookers fetch
-  const fetchBookers = async () => {
-    await new Promise((r) => setTimeout(r, 400));
-    return [
-      { id: 1, name: "Rahul Sharma", phone: "9XXXXXXXX1", seats: 1 },
-      { id: 2, name: "Ananya Reddy", phone: "9XXXXXXXX2", seats: 1 },
-    ];
+  const fetchBookingDetails = async (rideId) => {
+    const token = localStorage.getItem("jwtToken");
+    const res = await axios.get(
+      `http://localhost:5003/api/rides/${rideId}/details`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    return res.data.data.booking[0] || null;
   };
 
-  const handleRowClick = async (ride) => {
+  const handleRideClick = async (ride) => {
     const isBooked = ride.seatsAvailable < ride.seatsTotal;
     if (!isBooked) return;
 
     if (expandedRideId === ride._id) {
       setExpandedRideId(null);
-      setBookers([]);
+      setBooking(null);
       return;
     }
 
     setExpandedRideId(ride._id);
-    const data = await fetchBookers();
-    setBookers(data);
+    const bookingData = await fetchBookingDetails(ride._id);
+    setBooking(bookingData);
   };
+const filteredRides = useMemo(() => {
+  let result = rides;
 
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  const sortedRides = [...rides].sort((a, b) => {
-    const { key, direction } = sortConfig;
-    let valA = a[key];
-    let valB = b[key];
-
-    if (key === "dateTime") {
-      valA = new Date(valA).getTime();
-      valB = new Date(valB).getTime();
-    }
-
-    if (valA < valB) return direction === "asc" ? -1 : 1;
-    if (valA > valB) return direction === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const SortIcon = ({ column }) => {
-    if (sortConfig.key !== column)
-      return <ChevronsUpDown size={14} className="text-slate-400" />;
-
-    return sortConfig.direction === "asc" ? (
-      <ArrowUp size={14} className="text-slate-700" />
-    ) : (
-      <ArrowDown size={14} className="text-slate-700" />
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    result = rides.filter((r) =>
+      [r.origin, r.destination, r.status]
+        .filter(Boolean)
+        .some((field) => field.toLowerCase().includes(q))
     );
-  };
+  }
+
+  // Booked rides first (semantic priority, not UI sorting)
+  return [...result].sort((a, b) => {
+    const aBooked = a.seatsAvailable < a.seatsTotal;
+    const bBooked = b.seatsAvailable < b.seatsTotal;
+
+    if (aBooked === bBooked) return 0;
+    return aBooked ? -1 : 1;
+  });
+}, [rides, search]);
+
 
   if (loading) {
     return (
@@ -99,134 +88,146 @@ export default function MyRidesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-6">My Rides</h1>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              My Rides
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Manage, review, and track your posted rides
+            </p>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-100">
-              <tr className="text-slate-800">
-                <Header label="Route" onClick={() => handleSort("origin")}>
-                  <SortIcon column="origin" />
-                </Header>
+          <div className="relative w-80">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search route, city, status…"
+              className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
+          </div>
+        </div>
 
-                <Header
-                  label="Date & Time"
-                  onClick={() => handleSort("dateTime")}
-                >
-                  <SortIcon column="dateTime" />
-                </Header>
+        {/* RIDES */}
+        <div className="space-y-4">
+          {filteredRides.map((ride) => {
+            const isBooked = ride.seatsAvailable < ride.seatsTotal;
+            const isExpanded = expandedRideId === ride._id;
 
-                <Header
-                  label="Seats"
-                  onClick={() => handleSort("seatsAvailable")}
-                >
-                  <SortIcon column="seatsAvailable" />
-                </Header>
+            return (
+              <div
+                key={ride._id}
+                onClick={() => handleRideClick(ride)}
+                className={`relative rounded-2xl border bg-white transition-all duration-200 group
+                  ${
+                    isBooked
+                      ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-xl border-slate-200"
+                      : "opacity-60 cursor-default border-slate-100"
+                  }
+                `}
+              >
+                {/* accent bar */}
+                <div
+                  className={`absolute left-0 top-0 h-full w-1 rounded-l-2xl
+                    ${
+                      ride.status === "open"
+                        ? "bg-blue-500"
+                        : ride.status === "completed"
+                        ? "bg-green-500"
+                        : "bg-slate-300"
+                    }
+                    opacity-30 group-hover:opacity-100 transition-opacity
+                  `}
+                />
 
-                <Header label="Status" onClick={() => handleSort("status")}>
-                  <SortIcon column="status" />
-                </Header>
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedRides.map((ride) => {
-                const isBooked = ride.seatsAvailable < ride.seatsTotal;
-
-                return (
-                  <React.Fragment key={ride._id}>
-                    <tr
-                      onClick={() => handleRowClick(ride)}
-                      className={`group border-t transition-all duration-150 ease-out ${
-                        isBooked
-                          ? "cursor-pointer hover:bg-slate-50"
-                          : "opacity-60 cursor-default"
-                      }`}
-                    >
-                      <td className="px-6 py-4 text-slate-700 transition-all duration-150 ease-out group-hover:text-black group-hover:font-bold group-hover:translate-x-[2px]">
+                {/* main card */}
+                <div className="p-6 pl-8">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
                         {ride.origin.split(",")[0]} →{" "}
                         {ride.destination.split(",")[0]}
-                      </td>
-
-                      <td className="px-6 py-4 text-slate-600 transition-all duration-150 ease-out group-hover:text-black group-hover:font-bold">
+                      </h2>
+                      <p className="text-sm text-slate-500 mt-1">
                         {new Date(ride.dateTime).toLocaleString()}
-                      </td>
+                      </p>
+                    </div>
 
-                      <td className="px-6 py-4 text-slate-600 transition-all duration-150 ease-out group-hover:text-black group-hover:font-bold">
-                        {ride.seatsAvailable}/{ride.seatsTotal}
-                      </td>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+                        ${
+                          ride.status === "open"
+                            ? "bg-blue-50 text-blue-700"
+                            : ride.status === "completed"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-slate-100 text-slate-600"
+                        }
+                      `}
+                    >
+                      {ride.status}
+                    </span>
+                  </div>
 
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs ${
-                            ride.status === "open"
-                              ? "bg-blue-50 text-blue-700"
-                              : ride.status === "completed"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-slate-100 text-slate-600"
-                          } group-hover:font-black`}
-                        >
-                          {ride.status}
-                        </span>
-                      </td>
-                    </tr>
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <p className="text-slate-600">
+                      Seats booked:{" "}
+                      <span className="font-semibold text-slate-800">
+                        {ride.seatsTotal
+                          ? `${ride.seatsTotal - (ride.seatsAvailable ?? 0)}/${ride.seatsTotal}`
+                          : "—"}
+                      </span>
+                    </p>
 
-                    {/* EXPANDED ROW */}
-                    {expandedRideId === ride._id && isBooked && (
-                      <tr className="bg-slate-50 border-t">
-                        <td colSpan={4} className="px-6 py-4">
-                          <div className="flex items-center gap-2 mb-3 text-slate-800">
-                            <Users size={16} />
-                            <span className="text-sm font-semibold">
-                              Bookers
-                            </span>
-                          </div>
-
-                          <div className="space-y-2">
-                            {bookers.map((b) => (
-                              <div
-                                key={b.id}
-                                className="flex justify-between items-center bg-white border border-slate-200 rounded-lg px-4 py-2"
-                              >
-                                <div>
-                                  <p className="text-slate-800 text-sm font-medium">
-                                    {b.name}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {b.phone}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-slate-600">
-                                  Seats: {b.seats}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
+                    {isBooked && (
+                      <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-600 transition">
+                        {isExpanded ? "Hide passenger" : "View passenger"}
+                      </span>
                     )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                  </div>
+
+                  {/* PASSENGER — SINGLE, NESTED */}
+                  {isExpanded && isBooked && booking && (
+                    <div className="mt-5 ml-4 border-l-2 border-slate-200 pl-6">
+                      <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        <Users size={14} />
+                        Passenger
+                      </div>
+
+                      <div className="rounded-lg bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-slate-800">
+                          {booking.passengerId.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {booking.passengerId.email}
+                        </p>
+
+                        <div className="mt-2 text-xs text-slate-600">
+                          Seats booked:{" "}
+                          <span className="font-medium">
+                            {booking.seatsBooked}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredRides.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+              No rides match your search
+            </div>
+          )}
         </div>
       </div>
     </div>
-  );
-}
-
-function Header({ label, onClick, children }) {
-  return (
-    <th className="px-6 py-3 text-left font-bold">
-      <button
-        onClick={onClick}
-        className="flex items-center gap-1 hover:text-slate-900 transition"
-      >
-        {label}
-        {children}
-      </button>
-    </th>
   );
 }

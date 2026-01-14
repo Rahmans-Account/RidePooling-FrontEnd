@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from "react";
 import axios from "axios";
 import { Calendar, ArrowRight, Search } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
 export default function MyBookedRides({ bookings = [] }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-
+  const navigate = useNavigate();
   /* ---------------- helpers ---------------- */
 
   const shortLocation = (location = "") =>
@@ -49,8 +49,10 @@ export default function MyBookedRides({ bookings = [] }) {
 
   const filteredBookings = useMemo(() => {
     const now = new Date();
-
     return bookings.filter((b) => {
+      // Guard against missing ride data
+      if (!b || !b.rideId || !b.rideId.dateTime) return false;
+
       const rideDate = new Date(b.rideId.dateTime);
 
       if (filter === "today" && !isSameDay(now, rideDate)) return false;
@@ -66,10 +68,9 @@ export default function MyBookedRides({ bookings = [] }) {
       }
 
       const query = search.toLowerCase();
-      const route =
-        b.rideId.origin.toLowerCase() +
-        " " +
-        b.rideId.destination.toLowerCase();
+      const origin = (b.rideId.origin || "").toLowerCase();
+      const destination = (b.rideId.destination || "").toLowerCase();
+      const route = origin + " " + destination;
 
       return route.includes(query);
     });
@@ -89,8 +90,7 @@ export default function MyBookedRides({ bookings = [] }) {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      window.location.reload();
+      navigate(0);
     } catch (err) {
       console.error(err);
       alert("Failed to cancel booking");
@@ -180,13 +180,13 @@ export default function MyBookedRides({ bookings = [] }) {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3 text-gray-700">
                       <span className="font-medium group-hover:font-semibold group-hover:text-gray-900 transition-all">
-                        {shortLocation(booking.rideId.origin)}
+                        {shortLocation(booking.rideId?.origin ?? "")}
                       </span>
 
                       <ArrowRight className="w-4 h-4 text-gray-400 transition-all duration-300 group-hover:text-indigo-500 group-hover:translate-x-1" />
 
                       <span className="font-medium group-hover:font-semibold group-hover:text-gray-900 transition-all">
-                        {shortLocation(booking.rideId.destination)}
+                        {shortLocation(booking.rideId?.destination ?? "")}
                       </span>
                     </div>
                   </td>
@@ -195,7 +195,9 @@ export default function MyBookedRides({ bookings = [] }) {
                   <td className="px-6 py-5 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-indigo-500" />
-                      {formatDateTime(booking.rideId.dateTime)}
+                      {booking.rideId?.dateTime
+                        ? formatDateTime(booking.rideId.dateTime)
+                        : "TBA"}
                     </div>
                   </td>
 
