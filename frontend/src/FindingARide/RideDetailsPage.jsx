@@ -6,9 +6,11 @@ import {
   Info, Loader2, ChevronRight, IndianRupee 
 } from "lucide-react";
 import RouteMap from "../components/RouteMap";
+import RideReview from "../components/RideReview";
 import axios from "axios";
 import api from "../api/client";
 import bookingService from "../api/bookingService";
+import reviewService from "../api/reviewService";
 
 export default function RideDetailsPage() {
   const { id } = useParams();
@@ -18,12 +20,21 @@ export default function RideDetailsPage() {
   const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
   const [message, setMessage] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [driverRating, setDriverRating] = useState(null);
 
   useEffect(() => {
     const fetchRide = async () => {
       try {
         const res = await api.get(`/rides/${id}`);
         setRide(res.data.data);
+        
+        // Fetch reviews and driver rating
+        const reviewsRes = await reviewService.getReviewsByRide(id);
+        setReviews(reviewsRes.data || []);
+        
+        const ratingRes = await reviewService.getDriverAverageRating(res.data.data.driverId);
+        setDriverRating(ratingRes.data);
       } catch (err) {
         console.error("Failed to fetch ride:", err);
         setMessage({ type: 'error', text: 'Failed to load ride details' });
@@ -152,10 +163,10 @@ export default function RideDetailsPage() {
                 </div>
                 <div className="flex items-center justify-center md:justify-start gap-4 text-sm font-bold text-slate-500">
                   <span className="flex items-center gap-1 text-amber-500">
-                    <Star size={16} fill="currentColor" /> {ride.driverId?.rating?.toFixed(1)}
+                    <Star size={16} fill="currentColor" /> {driverRating?.averageRating || ride.driverId?.rating?.toFixed(1) || "5.0"}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                  <span>50+ Rides Completed</span>
+                  <span>{driverRating?.totalReviews || 0} Reviews</span>
                 </div>
               </div>
 
@@ -248,6 +259,18 @@ export default function RideDetailsPage() {
           </div>
 
         </div>
+
+        {/* Reviews Section */}
+        <RideReview 
+          rideId={id}
+          rideStatus={ride.rideStatus}
+          reviews={reviews}
+          onReviewAdded={() => {
+            // Refresh reviews and ratings
+            reviewService.getReviewsByRide(id).then(res => setReviews(res.data || []));
+            reviewService.getDriverAverageRating(ride.driverId._id).then(res => setDriverRating(res.data));
+          }}
+        />
       </div>
     </div>
   );

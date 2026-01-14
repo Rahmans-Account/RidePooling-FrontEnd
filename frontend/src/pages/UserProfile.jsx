@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Loader2, Mail, Phone, MapPin, Shield, Edit2, Save, X, 
-  User, CheckCircle, AlertCircle, Camera, Calendar, ArrowLeft
+  User, CheckCircle, AlertCircle, Camera, Calendar, ArrowLeft, Star
 } from "lucide-react";
 import authService from "../services/authService";
+import reviewService from "../api/reviewService";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function UserProfile() {
   // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [driverStats, setDriverStats] = useState(null);
+  const [driverReviews, setDriverReviews] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,6 +47,17 @@ export default function UserProfile() {
           city: userData.city || "",
           gender: userData.gender || "other",
         });
+
+        // Fetch driver stats if user is a driver
+        try {
+          const statsRes = await reviewService.getDriverAverageRating(userData._id);
+          setDriverStats(statsRes.data);
+
+          const reviewsRes = await reviewService.getReviewsByDriver(userData._id);
+          setDriverReviews(reviewsRes.data || []);
+        } catch (err) {
+          console.error("Failed to fetch driver stats:", err);
+        }
       }
     } catch (err) {
       setError("Unable to sync profile data.");
@@ -131,6 +145,23 @@ export default function UserProfile() {
                     </div>
                     <span className="text-xs font-bold text-slate-400">Jan 2026</span>
                   </div>
+
+                  {driverStats && (
+                    <>
+                      <div className="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                        <div className="flex items-center gap-3 text-sm font-semibold text-amber-800">
+                          <Star size={18} className="text-amber-500 fill-amber-500" /> Average Rating
+                        </div>
+                        <span className="text-lg font-bold text-amber-600">{driverStats.averageRating || "N/A"}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                        <div className="flex items-center gap-3 text-sm font-semibold text-indigo-800">
+                          <Shield size={18} className="text-indigo-500" /> Reviews
+                        </div>
+                        <span className="text-lg font-bold text-indigo-600">{driverStats.totalReviews || 0}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -246,6 +277,46 @@ export default function UserProfile() {
                 </div>
               )}
             </div>
+
+            {/* Driver Reviews Section */}
+            {driverReviews.length > 0 && (
+              <div className="mt-8 bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white">
+                <h3 className="text-xl font-black text-slate-900 mb-6">Recent Passenger Reviews</h3>
+                <div className="space-y-4">
+                  {driverReviews.slice(0, 5).map((review) => (
+                    <div key={review._id} className="p-4 border border-slate-100 rounded-xl">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-bold text-slate-900">{review.reviewer?.name || "Anonymous"}</p>
+                          <p className="text-xs text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={14}
+                              className={`${
+                                i < review.rating
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-slate-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-slate-600 mt-2">{review.comment}</p>
+                      )}
+                      {review.ride && (
+                        <p className="text-xs text-slate-400 mt-2">
+                          Route: {review.ride.origin} → {review.ride.destination}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

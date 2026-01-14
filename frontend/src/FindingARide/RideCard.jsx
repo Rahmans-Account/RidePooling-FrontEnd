@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Star, 
@@ -9,9 +9,23 @@ import {
   ShieldCheck,
   IndianRupee 
 } from "lucide-react";
+import reviewService from "../api/reviewService";
 
 export default function RideCard({ ride }) {
   const navigate = useNavigate();
+  const [driverRating, setDriverRating] = useState(null);
+
+  useEffect(() => {
+    const fetchDriverRating = async () => {
+      try {
+        const res = await reviewService.getDriverAverageRating(ride.driverId._id);
+        setDriverRating(res.data);
+      } catch (err) {
+        console.error("Failed to fetch driver rating:", err);
+      }
+    };
+    fetchDriverRating();
+  }, [ride.driverId._id]);
 
   const handleClick = () => {
     navigate(`/ride/${ride._id}`);
@@ -47,7 +61,7 @@ export default function RideCard({ ride }) {
             <div className="flex items-center gap-1 mt-1">
               <Star size={12} className="text-amber-400 fill-amber-400" />
               <span className="text-[10px] font-black text-slate-400">
-                {ride.driverId?.rating?.toFixed(1) || "5.0"}
+                {driverRating?.averageRating || ride.driverId?.rating?.toFixed(1) || "5.0"}
               </span>
             </div>
           </div>
