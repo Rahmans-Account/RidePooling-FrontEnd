@@ -6,11 +6,15 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
-      case "active":
+      case "confirmed":
+      case "accepted":
         return "text-green-600 bg-green-100";
+      case "pending":
+        return "text-yellow-600 bg-yellow-100";
       case "completed":
         return "text-blue-600 bg-blue-100";
       case "cancelled":
+      case "rejected":
         return "text-red-600 bg-red-100";
       default:
         return "text-gray-600 bg-gray-100";
@@ -61,7 +65,7 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Route</p>
                       <p className="font-bold text-slate-900">
-                        {booking.ride?.origin} → {booking.ride?.destination}
+                        {booking.startLocation?.address || booking.startLocation?.name || "Unknown"} → {booking.endLocation?.address || booking.endLocation?.name || "Unknown"}
                       </p>
                     </div>
                   </div>
@@ -72,7 +76,7 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Departure</p>
                       <p className="font-bold text-slate-900">
-                        {formatDateTime(booking.ride?.dateTime)}
+                        {formatDateTime(booking.departureTime)}
                       </p>
                     </div>
                   </div>
@@ -83,18 +87,18 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Driver</p>
                       <p className="font-bold text-slate-900">
-                        {booking.ride?.driverId?.name || "Unknown Driver"}
+                        {booking.driver?.name || "Unknown Driver"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Price */}
+                  {/* Seats & Price */}
                   <div className="flex items-start gap-3">
                     <IndianRupee size={20} className="text-indigo-600 mt-1 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Price</p>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Price & Seats</p>
                       <p className="font-bold text-slate-900">
-                        ₹{booking.ride?.pricePerSeat || 0}
+                        ₹{booking.pricePerSeat || 0} × {booking.seats || 1} seat(s) = ₹{(booking.pricePerSeat || 0) * (booking.seats || 1)}
                       </p>
                     </div>
                   </div>
@@ -104,20 +108,20 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
                 <div className="flex flex-col items-end gap-4 md:items-end">
                   <span
                     className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusStyle(
-                      booking.ride?.rideStatus
+                      booking.status
                     )}`}
                   >
-                    {booking.ride?.rideStatus?.charAt(0).toUpperCase() + booking.ride?.rideStatus?.slice(1) || "Active"}
+                    {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Pending"}
                   </span>
                   
-                  {booking.ride?.rideStatus === "active" && (
+                  {booking.rideStatus === "active" && booking.status !== "cancelled" && (
                     <button
-                      onClick={() => handleCancel(booking._id)}
-                      disabled={cancellingId === booking._id}
+                      onClick={() => handleCancel(booking.rideId)}
+                      disabled={cancellingId === booking.rideId}
                       className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={16} />
-                      {cancellingId === booking._id ? "Cancelling..." : "Cancel"}
+                      {cancellingId === booking.rideId ? "Cancelling..." : "Cancel"}
                     </button>
                   )}
                 </div>

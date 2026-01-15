@@ -1,55 +1,35 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
-import { paymentService } from '../api/paymentService';
+import bookingService from '../api/bookingService';
 
 export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [transactionId, setTransactionId] = useState('');
 
   const seatsToBook = ride?.seatsBooked || 1;
   const pricePerSeat = ride?.pricePerSeat || 0;
   const totalAmount = seatsToBook * pricePerSeat;
 
-  const handlePayment = async (e) => {
+  const handleBooking = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Step 1: Create payment record
-      const paymentRes = await paymentService.createPayment(
-        ride._id,
-        totalAmount,
-        paymentMethod
-      );
-
-      const paymentId = paymentRes.data.data._id;
-      const generatedTransactionId = paymentRes.data.data.transactionId;
-
-      // Step 2: Simulate payment gateway processing
-      // In production, integrate with Stripe, Razorpay, or other payment gateway
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Step 3: Confirm payment
-      const confirmRes = await paymentService.confirmPayment(
-        paymentId,
-        generatedTransactionId
-      );
-
-      setTransactionId(generatedTransactionId);
+      // Book the ride without payment
+      await bookingService.bookRide(ride._id, seatsToBook);
+      
       setSuccess(true);
 
       // Call success callback after 2 seconds
       setTimeout(() => {
-        onSuccess(confirmRes.data.data);
+        onSuccess();
         onClose();
       }, 2000);
     } catch (err) {
       setError(
-        err.response?.data?.message || 'Payment processing failed. Please try again.'
+        err.response?.data?.message || 'Booking failed. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -63,7 +43,7 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
       <div className='bg-white rounded-lg shadow-lg max-w-md w-full mx-4'>
         {/* Header */}
         <div className='flex items-center justify-between p-6 border-b border-gray-200'>
-          <h2 className='text-xl font-bold text-gray-800'>Checkout</h2>
+          <h2 className='text-xl font-bold text-gray-800'>Confirm Booking</h2>
           <button
             onClick={onClose}
             disabled={loading}
@@ -75,12 +55,12 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
 
         {/* Body */}
         {!success ? (
-          <form onSubmit={handlePayment} className='p-6'>
+          <form onSubmit={handleBooking} className='p-6'>
             {/* Ride Summary */}
             <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
               <div className='flex justify-between mb-2'>
                 <span className='text-gray-600'>Route:</span>
-                <span className='font-semibold text-gray-800'>
+                <span className='font-semibold text-gray-800 text-right text-sm'>
                   {ride.startLocation?.address || 'Start'} → {ride.endLocation?.address || 'End'}
                 </span>
               </div>
@@ -98,35 +78,11 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* Payment Method Selection */}
-            <div className='mb-6'>
-              <label className='block text-sm font-semibold text-gray-800 mb-3'>
-                Payment Method
-              </label>
-              <div className='space-y-2'>
-                {['card', 'upi', 'wallet', 'net_banking'].map((method) => (
-                  <label key={method} className='flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50'>
-                    <input
-                      type='radio'
-                      name='paymentMethod'
-                      value={method}
-                      checked={paymentMethod === method}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      disabled={loading}
-                      className='w-4 h-4 text-blue-600'
-                    />
-                    <span className='ml-3 capitalize text-gray-700 font-medium'>
-                      {method === 'card'
-                        ? 'Credit/Debit Card'
-                        : method === 'upi'
-                        ? 'UPI'
-                        : method === 'wallet'
-                        ? 'Digital Wallet'
-                        : 'Net Banking'}
-                    </span>
-                  </label>
-                ))}
-              </div>
+            {/* Payment Notice */}
+            <div className='mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg'>
+              <p className='text-sm text-amber-800'>
+                <strong>Payment after ride:</strong> You'll pay the driver via UPI after both of you confirm the ride is completed.
+              </p>
             </div>
 
             {/* Error Alert */}
@@ -141,7 +97,7 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
             {loading && (
               <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
                 <p className='text-sm text-blue-700 text-center'>
-                  Processing payment via {paymentMethod.toUpperCase()}...
+                  Confirming your booking...
                 </p>
               </div>
             )}
@@ -152,20 +108,20 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
               disabled={loading}
               className='w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition duration-200'
             >
-              {loading ? 'Processing...' : `Pay ₹${totalAmount}`}
+              {loading ? 'Booking...' : 'Confirm Booking'}
             </button>
           </form>
         ) : (
           /* Success State */
           <div className='p-6 text-center'>
             <CheckCircle size={64} className='text-green-600 mx-auto mb-4' />
-            <h3 className='text-xl font-bold text-gray-800 mb-2'>Payment Successful!</h3>
-            <p className='text-gray-600 mb-2'>Your booking has been confirmed.</p>
+            <h3 className='text-xl font-bold text-gray-800 mb-2'>Booking Confirmed!</h3>
+            <p className='text-gray-600 mb-2'>Your ride has been booked successfully.</p>
             <p className='text-sm text-gray-500 mb-4'>
-              Transaction ID: <span className='font-mono'>{transactionId}</span>
+              You'll pay ₹{totalAmount} via UPI after the ride is completed.
             </p>
             <div className='text-sm text-gray-600'>
-              <p>Redirecting to your rides...</p>
+              <p>Redirecting to your bookings...</p>
             </div>
           </div>
         )}

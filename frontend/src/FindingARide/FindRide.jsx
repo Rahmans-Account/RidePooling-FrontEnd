@@ -27,20 +27,53 @@ export default function FindRide() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const findRides = async () => {
-    if (!currentLocation || !date) {
-      alert("Please select a location and date to begin.");
-      return;
-    }
+  // MARKETPLACE MODEL: Load all available rides on component mount
+  React.useEffect(() => {
+    loadAllAvailableRides();
+  }, []);
 
+  // MARKETPLACE MODEL: Load all available rides on component mount
+  React.useEffect(() => {
+    loadAllAvailableRides();
+  }, []);
+
+  const loadAllAvailableRides = async () => {
+    try {
+      setLoading(true);
+      const response = await rideService.getAllRides({ minSeats: 1 });
+      if (response.success) {
+        const currentUser = authService.getCurrentUser();
+        const filteredRides = (response.data.rides || []).filter(
+          (ride) => ride.driver?._id !== currentUser?._id
+        );
+        setRides(filteredRides);
+      }
+    } catch (error) {
+      console.error("Failed to load rides:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const findRides = async () => {
     try {
       setLoading(true);
       setHasSearched(true);
-      const response = await rideService.getAllRides({
-        startLocation: currentLocation.name,
-        departureDate: date,
+      
+      // MARKETPLACE MODEL: Fetch ALL active rides with optional filters
+      const params = {
         minSeats: minSeats,
-      });
+      };
+      
+      // Add filters only if provided (optional, not required)
+      if (currentLocation) {
+        params.startLocation = currentLocation.name;
+      }
+      if (date) {
+        params.departureDate = date;
+      }
+      
+      const response = await rideService.getAllRides(params);
       if (response.success) {
         // Filter out user's own rides
         const currentUser = authService.getCurrentUser();

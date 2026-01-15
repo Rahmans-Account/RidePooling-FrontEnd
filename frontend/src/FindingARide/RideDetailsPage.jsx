@@ -3,15 +3,17 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   Calendar, Users, Car, ArrowLeft, Star, 
   MapPin, Clock, ShieldCheck, MessageCircle, 
-  Info, Loader2, ChevronRight, IndianRupee 
+  Info, Loader2, ChevronRight, IndianRupee, Navigation
 } from "lucide-react";
 import RouteMap from "../components/RouteMap";
 import RideReview from "../components/RideReview";
 import CheckoutModal from "../components/CheckoutModal";
+import LiveTracking from "../components/LiveTracking";
 import axios from "axios";
 import api from "../api/client";
 import bookingService from "../api/bookingService";
 import reviewService from "../api/reviewService";
+import authService from "../services/authService";
 
 export default function RideDetailsPage() {
   const { id } = useParams();
@@ -24,6 +26,13 @@ export default function RideDetailsPage() {
   const [reviews, setReviews] = useState([]);
   const [driverRating, setDriverRating] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showLiveTracking, setShowLiveTracking] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    setCurrentUser(user);
+  }, []);
 
   useEffect(() => {
     const fetchRide = async () => {
@@ -95,6 +104,18 @@ export default function RideDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-[Poppins]">
+      {/* Live Tracking Modal */}
+      {showLiveTracking && ride && (
+        <LiveTracking
+          rideId={ride._id}
+          isDriver={currentUser?._id === ride.driver?._id}
+          pickupLocation={ride.startLocation}
+          dropLocation={ride.endLocation}
+          rideData={{ ...ride, totalAmount: totalPrice }}
+          onClose={() => setShowLiveTracking(false)}
+        />
+      )}
+
       {/* Checkout Modal */}
       <CheckoutModal 
         isOpen={showCheckout}
@@ -237,7 +258,7 @@ export default function RideDetailsPage() {
                 <button 
                   onClick={handleBook}
                   disabled={booking || booked || seatsLeft <= 0}
-                  className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group text-lg disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                 >
                   {booking ? (
                     <>
@@ -257,6 +278,17 @@ export default function RideDetailsPage() {
                     </>
                   )}
                 </button>
+
+                {/* Live Tracking Button */}
+                {(booked || currentUser?._id === ride.driver?._id) && (
+                  <button
+                    onClick={() => setShowLiveTracking(true)}
+                    className="w-full py-5 bg-green-600 text-white font-black rounded-3xl hover:bg-green-500 shadow-xl shadow-green-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group text-lg"
+                  >
+                    <Navigation size={20} className="group-hover:rotate-12 transition-transform" />
+                    Track Live Location
+                  </button>
+                )}
 
                 {message && (
                   <div className={`mt-4 p-4 rounded-2xl text-white text-sm font-bold ${

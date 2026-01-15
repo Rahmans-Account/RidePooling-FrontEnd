@@ -2,9 +2,9 @@ import api from './client';
 import { notify } from '../utils/notify';
 
 export const bookingService = {
-  bookRide: async (rideId) => {
+  bookRide: async (rideId, seats = 1) => {
     try {
-      const response = await api.post(`/bookings/${rideId}/book`);
+      const response = await api.post(`/bookings/${rideId}/book`, { seats });
       notify.bookingSuccess();
       return response.data;
     } catch (error) {
@@ -30,6 +30,26 @@ export const bookingService = {
       return response.data;
     } catch (error) {
       notify.error(error.response?.data?.message || 'Failed to cancel booking');
+      throw error;
+    }
+  },
+
+  markCompletedByDriver: async (rideId) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/complete-driver`);
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Failed to mark as completed');
+      throw error;
+    }
+  },
+
+  markCompletedByPassenger: async (rideId) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/complete-passenger`);
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Failed to mark as completed');
       throw error;
     }
   },

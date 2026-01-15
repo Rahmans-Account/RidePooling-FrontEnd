@@ -12,7 +12,7 @@ export default function BookingsPage() {
       try {
         const response = await bookingService.getMyBookings();
         console.log("Bookings fetched:", response);
-        setBookings(response.data || []);
+        setBookings(response.data.bookings || []);
       } catch (err) {
         console.error("Error fetching bookings:", err);
         setError(
@@ -29,7 +29,7 @@ export default function BookingsPage() {
   const handleCancelBooking = async (rideId) => {
     try {
       await bookingService.cancelBooking(rideId);
-      setBookings(bookings.filter(b => b._id !== rideId));
+      setBookings(bookings.filter(b => b.rideId !== rideId));
     } catch (err) {
       console.error("Failed to cancel booking:", err);
       setError(err.response?.data?.message || "Failed to cancel booking");
