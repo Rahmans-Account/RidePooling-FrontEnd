@@ -8,6 +8,7 @@ import {
   ArrowLeft, Edit2, CheckCircle
 } from "lucide-react";
 import { useRide } from "../hooks/useRide";
+import bookingService from "../api/bookingService";
 
 export default function MyRidesPage() {
   const navigate = useNavigate();
@@ -27,6 +28,18 @@ export default function MyRidesPage() {
     setCancellingId(null);
     if (success) {
       await fetchMyRides();
+    }
+  };
+
+  const handleEndRide = async (rideId) => {
+    if (!window.confirm("Have you completed this ride? This will mark it as done from your side.")) return;
+    
+    try {
+      await bookingService.markCompletedByDriver(rideId);
+      alert("Ride marked as complete! Waiting for passenger confirmation.");
+      await fetchMyRides();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to mark ride as complete");
     }
   };
 
@@ -94,6 +107,7 @@ export default function MyRidesPage() {
                 key={ride._id} 
                 ride={ride} 
                 onCancel={handleCancel}
+                onEndRide={handleEndRide}
                 isCancelling={cancellingId === ride._id}
               />
             ))}
@@ -120,9 +134,17 @@ export default function MyRidesPage() {
   );
 }
 
-function RideCard({ ride, onCancel, isCancelling }) {
+function RideCard({ ride, onCancel, onEndRide, isCancelling }) {
   const isCancelled = ride.rideStatus === "cancelled";
   const isCompleted = ride.rideStatus === "completed";
+  const isInProgress = ride.rideStatus === "in_progress";
+  const [endingRide, setEndingRide] = useState(false);
+
+  const handleEndRide = async () => {
+    setEndingRide(true);
+    await onEndRide?.(ride._id);
+    setEndingRide(false);
+  };
   
   return (
     <div className={`bg-white rounded-[2.5rem] border ${isCancelled ? 'border-slate-100 opacity-75' : 'border-white'} shadow-[0_10px_40px_rgba(0,0,0,0.03)] overflow-hidden group hover:shadow-xl transition-all`}>
@@ -188,6 +210,22 @@ function RideCard({ ride, onCancel, isCancelling }) {
         {/* Actions */}
         {!isCancelled && !isCompleted && (
           <div className="flex gap-3">
+            {isInProgress && (
+              <button 
+                onClick={handleEndRide}
+                disabled={endingRide}
+                className="flex-1 py-3 px-4 rounded-xl bg-green-50 border border-green-200 text-green-600 text-xs font-bold hover:bg-green-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {endingRide ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={14} />
+                )}
+                End Ride
+              </button>
+            )}
+            
+            {!isInProgress && (
             <button 
               onClick={() => onCancel(ride._id)}
               disabled={isCancelling}
@@ -200,6 +238,7 @@ function RideCard({ ride, onCancel, isCancelling }) {
               )}
               Cancel Ride
             </button>
+            )}
             <button className="flex-1 py-3 px-4 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-indigo-600 shadow-lg shadow-slate-100 transition-all flex items-center justify-center gap-2 group">
               View Details <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>

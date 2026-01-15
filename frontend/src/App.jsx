@@ -12,6 +12,7 @@ import FindRide from "./FindingARide/FindRide";
 import RideDetailsPage from "./FindingARide/RideDetailsPage";
 import UserProfile from "./pages/UserProfile";
 import PaymentHistoryPage from "./pages/PaymentHistoryPage";
+import RiderBookingsPage from "./pages/RiderBookingsPage";
 import Layout from "./components/Layout";
 import "leaflet/dist/leaflet.css";
 
@@ -41,6 +42,14 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <BookingsPage />
+      </Layout>
+    ),
+  },
+  {
+    path: "/rider-bookings",
+    element: (
+      <Layout>
+        <RiderBookingsPage />
       </Layout>
     ),
   },

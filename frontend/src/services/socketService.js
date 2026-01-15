@@ -137,6 +137,15 @@ class SocketService {
     this.socket.on('ride-status-change', callback);
   }
 
+  onPaymentCompleted(callback) {
+    if (!this.socket) return;
+    console.log('📡 Setting up payment-completed listener');
+    this.socket.on('payment-completed', (data) => {
+      console.log('✅ Payment-completed event received:', data);
+      callback(data);
+    });
+  }
+
   offLocationUpdate(callback) {
     if (!this.socket) return;
     this.socket.off('location-update', callback);

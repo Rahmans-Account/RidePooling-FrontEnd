@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, CheckCircle, Smartphone } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Smartphone, Zap, Shield } from 'lucide-react';
 import { paymentService } from '../api/paymentService';
 
 export default function PaymentCompletionModal({ isOpen, ride, totalAmount, onClose, onSuccess }) {
@@ -11,17 +11,12 @@ export default function PaymentCompletionModal({ isOpen, ride, totalAmount, onCl
 
   const handlePayment = async (e) => {
     e.preventDefault();
-    
-    if (!upiId.trim()) {
-      setError('Please enter your UPI ID');
-      return;
-    }
 
     setLoading(true);
     setError('');
 
     try {
-      // Step 1: Create payment record with UPI method
+      // Step 1: Create payment record with UPI method (platform-collected)
       const paymentRes = await paymentService.createPayment(
         ride._id,
         totalAmount,
@@ -31,11 +26,11 @@ export default function PaymentCompletionModal({ isOpen, ride, totalAmount, onCl
       const paymentId = paymentRes.data.data._id;
       const generatedTransactionId = paymentRes.data.data.transactionId;
 
-      // Step 2: Simulate UPI payment processing
-      // In production, integrate with Razorpay UPI or similar
+      // Step 2: Simulate UPI payment gateway redirect
+      // In production, open Razorpay Checkout with UPI-only and orderId
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Step 3: Confirm payment
+      // Step 3: Confirm payment after gateway/webhook verification
       const confirmRes = await paymentService.confirmPayment(
         paymentId,
         generatedTransactionId
@@ -61,18 +56,23 @@ export default function PaymentCompletionModal({ isOpen, ride, totalAmount, onCl
   if (!isOpen || !ride) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-      <div className='bg-white rounded-lg shadow-lg max-w-md w-full mx-4'>
-        {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-gray-200'>
-          <h2 className='text-xl font-bold text-gray-800 flex items-center gap-2'>
-            <Smartphone size={24} className='text-blue-600' />
-            Pay via UPI
-          </h2>
+    <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+      <div className='bg-white rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden animate-in fade-in scale-95 duration-300'>
+        {/* Header with gradient */}
+        <div className='bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-8 flex items-center justify-between text-white'>
+          <div className='flex items-center gap-3'>
+            <div className='bg-white/20 p-2 rounded-xl backdrop-blur-sm'>
+              <Smartphone size={24} />
+            </div>
+            <div>
+              <h2 className='text-xl font-bold'>Complete Payment</h2>
+              <p className='text-blue-100 text-xs mt-1'>Secure UPI Transaction</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
             disabled={loading}
-            className='text-gray-400 hover:text-gray-600 disabled:opacity-50'
+            className='text-white/60 hover:text-white disabled:opacity-50 transition-colors'
           >
             <X size={24} />
           </button>
@@ -80,94 +80,128 @@ export default function PaymentCompletionModal({ isOpen, ride, totalAmount, onCl
 
         {/* Body */}
         {!success ? (
-          <form onSubmit={handlePayment} className='p-6'>
+          <form onSubmit={handlePayment} className='p-6 space-y-6'>
+            {/* Amount Display */}
+            <div className='text-center py-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100'>
+              <p className='text-slate-600 text-sm mb-2'>Total Amount Due</p>
+              <p className='text-4xl font-black text-blue-600'>₹{totalAmount}</p>
+              <p className='text-xs text-slate-500 mt-2'>Platform-collected via UPI</p>
+            </div>
+
             {/* Ride Summary */}
-            <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
-              <div className='flex justify-between mb-2'>
-                <span className='text-gray-600'>Driver:</span>
-                <span className='font-semibold text-gray-800'>
-                  {ride.driver?.name || 'Unknown'}
-                </span>
-              </div>
-              <div className='flex justify-between mb-2'>
-                <span className='text-gray-600'>Route:</span>
-                <span className='font-semibold text-gray-800 text-right text-sm'>
-                  {ride.startLocation?.address} → {ride.endLocation?.address}
-                </span>
-              </div>
-              <div className='border-t border-gray-200 mt-2 pt-2 flex justify-between'>
-                <span className='font-semibold text-gray-800'>Amount to Pay:</span>
-                <span className='font-bold text-lg text-blue-600'>₹{totalAmount}</span>
+            <div className='space-y-3 p-4 bg-slate-50 rounded-2xl'>
+              <h3 className='font-bold text-slate-900 text-sm mb-3 flex items-center gap-2'>
+                <Shield size={16} className='text-blue-600' /> Ride Details
+              </h3>
+              <div className='space-y-2 text-sm'>
+                <div className='flex justify-between'>
+                  <span className='text-slate-600'>Driver</span>
+                  <span className='font-semibold text-slate-900'>{ride.driver?.name || 'Unknown'}</span>
+                </div>
+                <div className='flex justify-between'>
+                  <span className='text-slate-600'>Route</span>
+                  <span className='font-semibold text-slate-900 text-right line-clamp-1'>
+                    {ride.startLocation?.address?.split(',')[0]} → {ride.endLocation?.address?.split(',')[0]}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Completion Notice */}
-            <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-lg'>
-              <p className='text-sm text-green-800'>
-                <strong>✓ Ride Completed:</strong> Both you and the driver have confirmed the ride completion.
-              </p>
+            {/* Success Notice */}
+            <div className='p-4 bg-green-50 border-l-4 border-green-500 rounded-lg flex gap-3'>
+              <CheckCircle size={20} className='text-green-600 flex-shrink-0 mt-0.5' />
+              <div>
+                <p className='text-sm font-bold text-green-900'>Ride Completed ✓</p>
+                <p className='text-xs text-green-700'>Both driver & passenger confirmed completion</p>
+              </div>
             </div>
 
-            {/* UPI ID Input */}
-            <div className='mb-6'>
-              <label className='block text-sm font-semibold text-gray-800 mb-2'>
-                Enter your UPI ID
-              </label>
-              <input
-                type='text'
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder='example@upi'
-                disabled={loading}
-                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100'
-              />
-              <p className='text-xs text-gray-500 mt-1'>
-                Enter your UPI ID (e.g., yourname@paytm, yourname@gpay)
-              </p>
+            {/* Info Note */}
+            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3'>
+              <Zap size={20} className='text-blue-600 flex-shrink-0 mt-0.5 flex-shrink-0' />
+              <div>
+                <p className='text-sm font-bold text-blue-900'>Quick Payment</p>
+                <p className='text-xs text-blue-700 mt-1'>Tap "Pay Now" to open UPI payment gateway. You'll receive a confirmation after successful payment.</p>
+              </div>
             </div>
 
             {/* Error Alert */}
             {error && (
-              <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2'>
+              <div className='p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3'>
                 <AlertCircle size={20} className='text-red-600 flex-shrink-0 mt-0.5' />
-                <p className='text-sm text-red-700'>{error}</p>
+                <div>
+                  <p className='text-sm font-bold text-red-900'>Payment Failed</p>
+                  <p className='text-xs text-red-700 mt-1'>{error}</p>
+                </div>
               </div>
             )}
 
             {/* Loading State */}
             {loading && (
-              <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
-                <p className='text-sm text-blue-700 text-center'>
-                  Processing UPI payment...
-                </p>
+              <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3'>
+                <div className='animate-spin rounded-full h-5 w-5 border-2 border-blue-300 border-t-blue-600'></div>
+                <p className='text-sm font-semibold text-blue-700'>Processing your payment...</p>
               </div>
             )}
 
             {/* Submit Button */}
             <button
               type='submit'
-              disabled={loading || !upiId.trim()}
-              className='w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition duration-200'
+              disabled={loading}
+              className='w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2'
             >
-              {loading ? 'Processing...' : `Pay ₹${totalAmount} via UPI`}
+              {loading ? (
+                <>
+                  <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Smartphone size={18} />
+                  Pay ₹{totalAmount} via UPI
+                </>
+              )}
             </button>
 
-            <p className='text-xs text-gray-500 text-center mt-4'>
-              Payments are processed securely via UPI gateway
+            <button
+              type='button'
+              onClick={onClose}
+              disabled={loading}
+              className='w-full mt-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-900 font-semibold py-2 px-4 rounded-xl transition duration-200'
+            >
+              Cancel
+            </button>
+
+            <p className='text-xs text-slate-500 text-center mt-3'>
+              ✓ Secure payment via RazorPay UPI Gateway
             </p>
           </form>
         ) : (
           /* Success State */
-          <div className='p-6 text-center'>
-            <CheckCircle size={64} className='text-green-600 mx-auto mb-4' />
-            <h3 className='text-xl font-bold text-gray-800 mb-2'>Payment Successful!</h3>
-            <p className='text-gray-600 mb-2'>Your payment has been processed.</p>
-            <p className='text-sm text-gray-500 mb-4'>
-              Transaction ID: <span className='font-mono'>{transactionId}</span>
-            </p>
-            <div className='text-sm text-gray-600'>
-              <p>Thank you for using our service!</p>
+          <div className='p-8 text-center space-y-4'>
+            <div className='flex justify-center'>
+              <div className='bg-green-100 p-4 rounded-full animate-bounce'>
+                <CheckCircle size={56} className='text-green-600' />
+              </div>
             </div>
+            <div className='space-y-2'>
+              <h3 className='text-2xl font-black text-slate-900'>Payment Successful! 🎉</h3>
+              <p className='text-slate-600'>Your payment has been confirmed.</p>
+            </div>
+            <div className='bg-green-50 border border-green-200 rounded-xl p-4 space-y-2'>
+              <p className='text-xs text-slate-500 uppercase tracking-widest font-bold'>Transaction ID</p>
+              <p className='font-mono text-sm font-bold text-green-700'>{transactionId}</p>
+            </div>
+            <div className='space-y-1 text-sm text-slate-600'>
+              <p>✓ Driver earnings credited to wallet</p>
+              <p>✓ Ride marked as completed</p>
+            </div>
+            <button
+              onClick={onClose}
+              className='w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200'
+            >
+              Continue
+            </button>
           </div>
         )}
       </div>

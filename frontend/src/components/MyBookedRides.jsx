@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-import { Trash2, MapPin, Clock, Users, IndianRupee } from "lucide-react";
+import { Trash2, MapPin, Clock, Users, IndianRupee, Check, Navigation } from "lucide-react";
+import LiveTracking from "./LiveTracking";
+import bookingService from "../api/bookingService";
 
-export default function MyBookedRides({ bookings = [], onCancelBooking = null }) {
+export default function MyBookedRides({ bookings = [], onCancelBooking = null, onRefresh = null }) {
   const [cancellingId, setCancellingId] = useState(null);
+  const [completingId, setCompletingId] = useState(null);
+  const [trackingBooking, setTrackingBooking] = useState(null);
 
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
@@ -28,6 +32,21 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
         await onCancelBooking?.(rideId);
       } finally {
         setCancellingId(null);
+      }
+    }
+  };
+
+  const handleMarkDone = async (rideId) => {
+    if (window.confirm("Have you reached your destination? This will mark the ride as complete from your side.")) {
+      setCompletingId(rideId);
+      try {
+        await bookingService.markCompletedByPassenger(rideId);
+        alert("Ride marked as complete! Waiting for driver confirmation.");
+        onRefresh?.(); // Refresh the bookings list
+      } catch (error) {
+        alert(error.response?.data?.message || "Failed to mark as complete");
+      } finally {
+        setCompletingId(null);
       }
     }
   };
@@ -114,6 +133,30 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
                     {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Pending"}
                   </span>
                   
+                  {/* Track Ride - visible when ride is active or in progress */}
+                  {(booking.rideStatus === "active" || booking.rideStatus === "in_progress") && (
+                    <button
+                      onClick={() => setTrackingBooking(booking)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors"
+                    >
+                      <Navigation size={16} />
+                      Track Ride
+                    </button>
+                  )}
+                  
+                  {/* Done Button - Show for in-progress rides */}
+                  {booking.rideStatus === "in_progress" && booking.status !== "completed" && (
+                    <button
+                      onClick={() => handleMarkDone(booking.rideId)}
+                      disabled={completingId === booking.rideId}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
+                    >
+                      <Check size={16} />
+                      {completingId === booking.rideId ? "Marking..." : "Done"}
+                    </button>
+                  )}
+                  
+                  {/* Cancel Button - Show for active rides */}
                   {booking.rideStatus === "active" && booking.status !== "cancelled" && (
                     <button
                       onClick={() => handleCancel(booking.rideId)}
@@ -152,6 +195,23 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null })
             You haven’t booked any rides yet. Start exploring rides to book one!
           </p>
         </div>
+      )}
+
+      {/* Live Tracking Overlay */}
+      {trackingBooking && (
+        <LiveTracking
+          rideId={trackingBooking.rideId}
+          isDriver={false}
+          pickupLocation={trackingBooking.startLocation}
+          dropLocation={trackingBooking.endLocation}
+          rideData={{
+            pricePerSeat: trackingBooking.pricePerSeat,
+            seats: trackingBooking.seats,
+            totalAmount: (trackingBooking.pricePerSeat || 0) * (trackingBooking.seats || 1),
+            driver: trackingBooking.driver,
+          }}
+          onClose={() => setTrackingBooking(null)}
+        />
       )}
     </div>
   );

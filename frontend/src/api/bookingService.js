@@ -23,6 +23,16 @@ export const bookingService = {
     }
   },
 
+  getDriverBookings: async () => {
+    try {
+      const response = await api.get('/bookings/driver');
+      return response.data;
+    } catch (error) {
+      notify.error('Failed to load driver bookings');
+      throw error;
+    }
+  },
+
   cancelBooking: async (rideId) => {
     try {
       const response = await api.delete(`/bookings/${rideId}`);

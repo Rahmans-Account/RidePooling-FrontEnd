@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Loader2, Mail, Phone, MapPin, Shield, Edit2, Save, X, 
-  User, CheckCircle, AlertCircle, Camera, Calendar, ArrowLeft, Star
+  User, CheckCircle, AlertCircle, Camera, Calendar, ArrowLeft, Star, TrendingUp, Zap
 } from "lucide-react";
 import authService from "../services/authService";
 import reviewService from "../api/reviewService";
@@ -145,6 +145,22 @@ export default function UserProfile() {
                     </div>
                     <span className="text-xs font-bold text-slate-400">Jan 2026</span>
                   </div>
+
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-3 text-sm font-semibold text-blue-800">
+                      <CheckCircle size={18} className="text-blue-500" /> Completed Rides
+                    </div>
+                    <span className="text-lg font-bold text-blue-600">{user?.completedRides || 0}</span>
+                  </div>
+
+                  {user?.totalEarnings > 0 && (
+                    <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl border border-green-100">
+                      <div className="flex items-center gap-3 text-sm font-semibold text-green-800">
+                        <TrendingUp size={18} className="text-green-500" /> Total Earnings
+                      </div>
+                      <span className="text-lg font-bold text-green-600">₹{user?.totalEarnings.toLocaleString()}</span>
+                    </div>
+                  )}
 
                   {driverStats && (
                     <>

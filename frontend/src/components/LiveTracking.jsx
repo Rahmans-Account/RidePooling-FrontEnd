@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -53,6 +54,7 @@ function MapUpdater({ center }) {
 }
 
 export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLocation, rideData, onClose }) {
+  const navigate = useNavigate();
   const [driverLocation, setDriverLocation] = useState(null);
   const [passengerLocation, setPassengerLocation] = useState(null);
   const [distance, setDistance] = useState(null);
@@ -66,7 +68,10 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [rideFullData, setRideFullData] = useState(rideData || null);
   const [completionLoading, setCompletionLoading] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const trackingIntervalRef = useRef(null);
+  const timerIntervalRef = useRef(null);
 
   // Calculate map center
   const mapCenter = driverLocation 
@@ -161,12 +166,114 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
     setTrackingEnabled(false);
   };
 
+  // Timer functions
+  const startTimer = () => {
+    setTimerStarted(true);
+    setElapsedTime(0);
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    setTimerStarted(false);
+    setElapsedTime(0);
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Socket listener for payment completion - moved after functions are defined
+  useEffect(() => {
+    const handlePaymentComplete = (data) => {
+      console.log('🎉 Payment complete handler called with data:', data);
+      if (isDriver) {
+        console.log('💳 Payment completed for driver - stopping timer');
+        setTimerStarted(false); // Stop showing timer
+        stopTimer(); // Clear the interval
+        alert(`✅ Payment Confirmed!\n₹${data?.amount || 0} received\n\nRedirecting to Payment History...`);
+        
+        // Close the tracking overlay after a moment
+        setTimeout(() => {
+          console.log('Closing tracking and navigating...');
+          onClose(); // Close the LiveTracking overlay
+          navigate('/payment-history');
+        }, 1500);
+      }
+    };
+
+    if (isDriver) {
+      console.log('Driver: Setting up payment-completed listener for ride', rideId);
+      socketService.onPaymentCompleted(handlePaymentComplete);
+    }
+
+    return () => {
+      // Cleanup
+    };
+  }, [isDriver, rideId, navigate, onClose]);
+
   // Handle send message
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (inputMessage.trim()) {
       socketService.sendMessage(inputMessage);
       setInputMessage('');
+    }
+  };
+
+  // Handle ride completion (driver or passenger)
+  const handleCompleteRide = async () => {
+    try {
+      setCompletionLoading(true);
+
+      const res = isDriver
+        ? await bookingService.markCompletedByDriver(rideId)
+        : await bookingService.markCompletedByPassenger(rideId);
+
+      console.log('Completion response:', res);
+
+      // Check response structure - handle both data.paymentPending and data.data.paymentPending
+      const paymentPending = res?.data?.data?.paymentPending
+        || res?.data?.paymentPending
+        || res?.paymentPending;
+
+      if (isDriver) {
+        setDriverCompleted(true);
+      } else {
+        setPassengerCompleted(true);
+      }
+
+      // Ensure we have full ride data for the payment modal
+      const completeRideData = {
+        _id: rideId,
+        driver: rideData?.driver || {},
+        startLocation: pickupLocation || {},
+        endLocation: dropLocation || {},
+        totalAmount: rideData?.totalAmount || 0,
+      };
+
+      setRideFullData(completeRideData);
+
+      // Passenger flow: open modal; if backend hasn’t flipped paymentPending yet, still allow payment UI
+      if (!isDriver) {
+        console.log('Opening payment modal for passenger with ride data:', completeRideData, 'paymentPending:', paymentPending);
+        setShowPaymentModal(true);
+      } else if (isDriver && paymentPending) {
+        console.log('Driver completed; waiting for all passengers to pay');
+        startTimer();
+      }
+    } catch (error) {
+      console.error('Failed to mark completion:', error);
+      alert(error?.response?.data?.message || 'Failed to mark as completed');
+    } finally {
+      setCompletionLoading(false);
     }
   };
 
@@ -199,6 +306,15 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
 
           {/* Stats */}
           <div className="flex items-center gap-6">
+            {timerStarted && isDriver && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-orange-100 rounded-lg border-2 border-orange-500">
+                <Clock size={20} className="text-orange-600" />
+                <div>
+                  <p className="text-xs text-orange-700 font-semibold">Waiting for Payment</p>
+                  <p className="text-lg font-bold text-orange-600">{formatTime(elapsedTime)}</p>
+                </div>
+              </div>
+            )}
             {distance && (
               <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
                 <Navigation size={20} className="text-blue-600" />
@@ -261,7 +377,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         <MapContainer
           center={mapCenter}
           zoom={14}
-          className="h-full w-full"
+          className="h-full w-full z-0"
           zoomControl={false}
         >
           <TileLayer
@@ -318,7 +434,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
       </div>
 
       {/* Chat panel */}
-      <div className="absolute bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="absolute bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl overflow-hidden z-20">
         <div className="bg-slate-900 px-4 py-3">
           <h3 className="text-white font-bold">Chat with {isDriver ? 'Passenger' : 'Driver'}</h3>
         </div>

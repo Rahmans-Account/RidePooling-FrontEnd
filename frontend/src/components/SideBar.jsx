@@ -19,7 +19,8 @@ export default function SideBar() {
       path: "/dashboard",
     },
     { name: "My Rides", icon: <Car size={20} />, path: "/my-rides" },
-    { name: "Bookings", icon: <Book size={20} />, path: "/bookings" },
+    { name: "User Bookings", icon: <Book size={20} />, path: "/bookings" },
+    { name: "Rider Bookings", icon: <Book size={20} />, path: "/rider-bookings" },
   ];
 
   return (
