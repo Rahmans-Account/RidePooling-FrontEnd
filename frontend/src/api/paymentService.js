@@ -1,43 +1,79 @@
 import client from './client';
+import { notify } from '../utils/notify';
 
 export const paymentService = {
   // Create a new payment (when booking)
-  createPayment: (rideId, amount, paymentMethod = 'card') => {
-    return client.post('/payments', {
-      rideId,
-      amount,
-      paymentMethod,
-    });
+  createPayment: async (rideId, amount, paymentMethod = 'card') => {
+    try {
+      const response = await client.post('/payments', {
+        rideId,
+        amount,
+        paymentMethod,
+      });
+      return response;
+    } catch (error) {
+      notify.paymentError(error.response?.data?.message);
+      throw error;
+    }
   },
 
   // Confirm payment after payment gateway verifies it
-  confirmPayment: (paymentId, transactionId) => {
-    return client.put(`/payments/confirm`, {
-      paymentId,
-      transactionId,
-    });
+  confirmPayment: async (paymentId, transactionId) => {
+    try {
+      const response = await client.put(`/payments/confirm`, {
+        paymentId,
+        transactionId,
+      });
+      notify.paymentSuccess();
+      return response;
+    } catch (error) {
+      notify.paymentError(error.response?.data?.message);
+      throw error;
+    }
   },
 
   // Refund a completed payment
-  refundPayment: (paymentId, reason = 'Booking cancelled') => {
-    return client.post(`/payments/refund`, {
-      paymentId,
-      reason,
-    });
+  refundPayment: async (paymentId, reason = 'Booking cancelled') => {
+    try {
+      const response = await client.post(`/payments/refund`, {
+        paymentId,
+        reason,
+      });
+      notify.refundSuccess();
+      return response;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Refund failed');
+      throw error;
+    }
   },
 
   // Get payment history (passenger bookings or driver earnings)
-  getPaymentHistory: (type = 'passenger') => {
-    return client.get(`/payments/history?type=${type}`);
+  getPaymentHistory: async (type = 'passenger') => {
+    try {
+      return await client.get(`/payments/history?type=${type}`);
+    } catch (error) {
+      notify.error('Failed to load payment history');
+      throw error;
+    }
   },
 
   // Get payment statistics (earnings for drivers or spending for passengers)
-  getPaymentStats: () => {
-    return client.get('/payments/stats');
+  getPaymentStats: async () => {
+    try {
+      return await client.get('/payments/stats');
+    } catch (error) {
+      notify.error('Failed to load statistics');
+      throw error;
+    }
   },
 
   // Get details of a specific payment
-  getPaymentDetails: (paymentId) => {
-    return client.get(`/payments/${paymentId}`);
+  getPaymentDetails: async (paymentId) => {
+    try {
+      return await client.get(`/payments/${paymentId}`);
+    } catch (error) {
+      notify.error('Failed to load payment details');
+      throw error;
+    }
   },
 };

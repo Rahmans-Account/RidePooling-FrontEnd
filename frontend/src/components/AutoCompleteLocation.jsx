@@ -53,8 +53,8 @@ export default function AutoCompleteLocation({ label, onSelect, onTyping }) {
     setSuggestions([]);
     onSelect({
       name: place.display_name,
-      lat: Number(place.lat),
-      lng: Number(place.lon),
+      latitude: Number(place.lat),
+      longitude: Number(place.lon),
     });
   };
 

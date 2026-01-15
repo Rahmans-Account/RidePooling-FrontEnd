@@ -15,28 +15,39 @@ export default function RideCard({ ride }) {
   const navigate = useNavigate();
   const [driverRating, setDriverRating] = useState(null);
 
+  // Safely get driver ID
+  const driverId = ride?.driver?._id || ride?.driverId;
+  
   useEffect(() => {
     const fetchDriverRating = async () => {
+      if (!driverId) return;
       try {
-        const res = await reviewService.getDriverAverageRating(ride.driverId._id);
+        const res = await reviewService.getDriverAverageRating(driverId);
         setDriverRating(res.data);
       } catch (err) {
         console.error("Failed to fetch driver rating:", err);
       }
     };
     fetchDriverRating();
-  }, [ride.driverId._id]);
+  }, [driverId]);
 
   const handleClick = () => {
     navigate(`/ride/${ride._id}`);
   };
 
-  const dateObj = new Date(ride.dateTime);
+  // Use correct field names from backend schema
+  const dateObj = new Date(ride.departureTime);
   const time = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const day = dateObj.toLocaleDateString([], { day: "numeric", month: "short" });
 
   // Calculate actual seats left
   const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
+  const driverName = ride.driver?.name || "Unknown Driver";
+  const driverAvatar = driverName[0] || "U";
+  const driverRatingValue = driverRating?.averageRating || ride.driver?.rating?.toFixed(1) || "5.0";
+  const startLocation = ride.startLocation?.address?.split(',')[0] || "Start";
+  const endLocation = ride.endLocation?.address?.split(',')[0] || "Destination";
+  const pricePerSeat = ride.pricePerSeat || 0;
 
   return (
     <div
@@ -48,7 +59,7 @@ export default function RideCard({ ride }) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">
-              {ride.driverId?.name?.[0] || "U"}
+              {driverAvatar}
             </div>
             <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
               <ShieldCheck size={14} className="text-emerald-500" fill="currentColor" fillOpacity={0.1} />
@@ -56,12 +67,12 @@ export default function RideCard({ ride }) {
           </div>
           <div>
             <h4 className="font-bold text-slate-900 text-sm leading-tight group-hover:text-indigo-600 transition-colors">
-              {ride.driverId?.name}
+              {driverName}
             </h4>
             <div className="flex items-center gap-1 mt-1">
               <Star size={12} className="text-amber-400 fill-amber-400" />
               <span className="text-[10px] font-black text-slate-400">
-                {driverRating?.averageRating || ride.driverId?.rating?.toFixed(1) || "5.0"}
+                {driverRatingValue}
               </span>
             </div>
           </div>
@@ -83,13 +94,13 @@ export default function RideCard({ ride }) {
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full border-2 border-indigo-500 bg-white" />
               <p className="text-xs font-bold text-slate-800 line-clamp-1 uppercase tracking-tight">
-                {ride.origin.split(',')[0]}
+                {startLocation}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <MapPin size={12} className="text-emerald-500" />
               <p className="text-xs font-bold text-slate-800 line-clamp-1 uppercase tracking-tight">
-                {ride.destination.split(',')[0]}
+                {endLocation}
               </p>
             </div>
           </div>
@@ -101,7 +112,7 @@ export default function RideCard({ ride }) {
           <div className="text-right pl-2">
             <div className="flex items-center justify-end text-indigo-600">
               <IndianRupee size={14} strokeWidth={3} />
-              <span className="text-2xl font-black tracking-tighter">{ride.price}</span>
+              <span className="text-2xl font-black tracking-tighter">{pricePerSeat}</span>
             </div>
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">per seat</p>
           </div>

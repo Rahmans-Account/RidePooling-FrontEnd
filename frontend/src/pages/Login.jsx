@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  LogIn, 
-  X, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
+import {
+  LogIn,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
   ArrowLeft,
-  ChevronRight 
+  ChevronRight,
 } from "lucide-react";
 import authService from "../services/authService";
+import { notify } from "../utils/notify";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -24,8 +24,9 @@ export default function Login() {
   const validate = () => {
     const errs = {};
     if (!form.email) errs.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = "Please enter a valid email address.";
+    }
     if (!form.password) errs.password = "Password is required.";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -40,21 +41,25 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      setLoading(true);
-      try {
-        const response = await authService.login(form.email, form.password);
-        if (response.success) {
-          navigate("/dashboard");
-        }
-      } catch (err) {
-        const errorMessage =
-          err.message ||
-          "Invalid email or password. Please try again.";
+    if (!validate()) return;
+
+    setLoading(true);
+    try {
+      const response = await authService.login(form.email, form.password);
+      if (response.success) {
+        notify.loginSuccess();
+        navigate("/dashboard");
+      } else {
+        const errorMessage = response.message || "Invalid email or password. Please try again.";
         setServerError(errorMessage);
-      } finally {
-        setLoading(false);
+        notify.loginError(errorMessage);
       }
+    } catch (err) {
+      const errorMessage = err.message || "Invalid email or password. Please try again.";
+      setServerError(errorMessage);
+      notify.loginError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,9 +82,8 @@ export default function Login() {
         <span className="text-sm font-medium">Back to Home</span>
       </button>
 
-      {/* Login Card */}
-      <div className="w-full max-w-[440px] bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white p-8 md:p-12 relative">
-        
+      {/* Card */}
+      <div className="w-full max-w-2xl bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white p-8 md:p-12">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-200 mb-6">
@@ -186,7 +190,6 @@ export default function Login() {
         By signing in, you agree to our Terms of Service & Privacy Policy.
       </p>
 
-      {/* Add this simple shake animation to your global CSS or Tailwind config */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

@@ -35,8 +35,11 @@ export default function RideDetailsPage() {
         const reviewsRes = await reviewService.getReviewsByRide(id);
         setReviews(reviewsRes.data || []);
         
-        const ratingRes = await reviewService.getDriverAverageRating(res.data.data.driverId);
-        setDriverRating(ratingRes.data);
+        const driverId = res.data.data.driver?._id || res.data.data.driverId;
+        if (driverId) {
+          const ratingRes = await reviewService.getDriverAverageRating(driverId);
+          setDriverRating(ratingRes.data);
+        }
       } catch (err) {
         console.error("Failed to fetch ride:", err);
         setMessage({ type: 'error', text: 'Failed to load ride details' });
@@ -69,14 +72,22 @@ export default function RideDetailsPage() {
     );
   }
 
-  const date = new Date(ride.dateTime);
+  const date = new Date(ride.departureTime);
   const formattedDate = date.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
   const formattedTime = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  const fromCoords = { lat: ride.originCoords.coordinates[1], lng: ride.originCoords.coordinates[0] };
-  const toCoords = { lat: ride.destinationCoords.coordinates[1], lng: ride.destinationCoords.coordinates[0] };
+  // Use correct field names from backend schema
+  const fromCoords = { 
+    lat: ride.startLocation?.latitude || 0, 
+    lng: ride.startLocation?.longitude || 0 
+  };
+  const toCoords = { 
+    lat: ride.endLocation?.latitude || 0, 
+    lng: ride.endLocation?.longitude || 0 
+  };
 
   const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
+  const totalPrice = (ride.pricePerSeat || 0) * (ride.seatsBooked || 1);
 
   const handleBook = async () => {
     setShowCheckout(true); // Open checkout modal instead of direct booking
@@ -140,13 +151,13 @@ export default function RideDetailsPage() {
                    <div className="relative pl-10">
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border-4 border-indigo-500 z-10" />
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Pickup Point</p>
-                      <h3 className="text-xl font-bold text-slate-900">{ride.origin}</h3>
+                      <h3 className="text-xl font-bold text-slate-900">{ride.startLocation?.address || "Start Location"}</h3>
                    </div>
 
                    <div className="relative pl-10">
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border-4 border-emerald-500 z-10" />
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Destination</p>
-                      <h3 className="text-xl font-bold text-slate-900">{ride.destination}</h3>
+                      <h3 className="text-xl font-bold text-slate-900">{ride.endLocation?.address || "Destination"}</h3>
                    </div>
                 </div>
               </div>
@@ -156,7 +167,7 @@ export default function RideDetailsPage() {
             <div className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
               <div className="relative">
                 <div className="w-24 h-24 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-3xl flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-indigo-100">
-                  {ride.driverId?.name?.[0] || "U"}
+                  {ride.driver?.name?.[0] || "U"}
                 </div>
                 <div className="absolute -bottom-2 -right-2 bg-white p-1.5 rounded-xl shadow-lg border border-slate-50">
                   <ShieldCheck size={20} className="text-emerald-500" fill="currentColor" fillOpacity={0.1} />
@@ -165,14 +176,14 @@ export default function RideDetailsPage() {
               
               <div className="flex-1 text-center md:text-left">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
-                  <h2 className="text-2xl font-black text-slate-900">{ride.driverId?.name}</h2>
+                  <h2 className="text-2xl font-black text-slate-900">{ride.driver?.name || "Unknown Driver"}</h2>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-full">
                     <ShieldCheck size={12} /> Verified Driver
                   </span>
                 </div>
                 <div className="flex items-center justify-center md:justify-start gap-4 text-sm font-bold text-slate-500">
                   <span className="flex items-center gap-1 text-amber-500">
-                    <Star size={16} fill="currentColor" /> {driverRating?.averageRating || ride.driverId?.rating?.toFixed(1) || "5.0"}
+                    <Star size={16} fill="currentColor" /> {driverRating?.averageRating || ride.driver?.rating?.toFixed(1) || "5.0"}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
                   <span>{driverRating?.totalReviews || 0} Reviews</span>
@@ -205,7 +216,7 @@ export default function RideDetailsPage() {
                   <DetailItem icon={<Calendar />} label="Date" value={formattedDate} />
                   <DetailItem icon={<Clock />} label="Time" value={formattedTime} />
                   <DetailItem icon={<Users />} label="Availability" value={`${seatsLeft} Seats Left`} />
-                  <DetailItem icon={<Car />} label="Vehicle" value={ride.vehicle || "Standard Car"} />
+                  <DetailItem icon={<Car />} label="Vehicle" value={ride.vehicleInfo?.description || "Standard Car"} />
                 </div>
 
                 <div className="pt-8 border-t border-white/10 flex items-center justify-between mb-8">
@@ -213,7 +224,7 @@ export default function RideDetailsPage() {
                     <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Price</p>
                     <div className="flex items-center text-white mt-1">
                       <IndianRupee size={20} className="text-indigo-400" />
-                      <span className="text-4xl font-black tracking-tighter">{ride.price}</span>
+                      <span className="text-4xl font-black tracking-tighter">{totalPrice}</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -277,7 +288,10 @@ export default function RideDetailsPage() {
           onReviewAdded={() => {
             // Refresh reviews and ratings
             reviewService.getReviewsByRide(id).then(res => setReviews(res.data || []));
-            reviewService.getDriverAverageRating(ride.driverId._id).then(res => setDriverRating(res.data));
+            const driverId = ride.driver?._id || ride.driverId;
+            if (driverId) {
+              reviewService.getDriverAverageRating(driverId).then(res => setDriverRating(res.data));
+            }
           }}
         />
       </div>

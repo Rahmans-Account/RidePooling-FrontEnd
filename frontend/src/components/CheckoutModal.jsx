@@ -10,7 +10,7 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
   const [transactionId, setTransactionId] = useState('');
 
   const seatsToBook = ride?.seatsBooked || 1;
-  const pricePerSeat = ride?.price || 0;
+  const pricePerSeat = ride?.pricePerSeat || 0;
   const totalAmount = seatsToBook * pricePerSeat;
 
   const handlePayment = async (e) => {
@@ -81,7 +81,7 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
               <div className='flex justify-between mb-2'>
                 <span className='text-gray-600'>Route:</span>
                 <span className='font-semibold text-gray-800'>
-                  {ride.source} → {ride.destination}
+                  {ride.startLocation?.address || 'Start'} → {ride.endLocation?.address || 'End'}
                 </span>
               </div>
               <div className='flex justify-between mb-2'>

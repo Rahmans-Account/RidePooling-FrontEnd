@@ -15,6 +15,7 @@ import {
 import AutoCompleteLocation from "../components/AutoCompleteLocation";
 import RideCard from "./RideCard";
 import rideService from "../services/rideService";
+import authService from "../services/authService";
 
 export default function FindRide() {
   const navigate = useNavigate();
@@ -36,11 +37,17 @@ export default function FindRide() {
       setLoading(true);
       setHasSearched(true);
       const response = await rideService.getAllRides({
+        startLocation: currentLocation.name,
         departureDate: date,
         minSeats: minSeats,
       });
       if (response.success) {
-        setRides(response.data.rides);
+        // Filter out user's own rides
+        const currentUser = authService.getCurrentUser();
+        const filteredRides = (response.data.rides || []).filter(
+          (ride) => ride.driver?._id !== currentUser?._id
+        );
+        setRides(filteredRides);
       } else {
         alert(response.message || "Failed to fetch rides");
       }

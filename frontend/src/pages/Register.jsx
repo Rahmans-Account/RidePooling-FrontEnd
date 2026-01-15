@@ -14,6 +14,7 @@ import {
   ChevronRight 
 } from "lucide-react";
 import authService from "../services/authService";
+  import { notify } from "../utils/notify";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -60,13 +61,15 @@ export default function Register() {
       try {
         const response = await authService.register(form);
         if (response.success) {
-          navigate("/dashboard");
+          notify.registerSuccess();
+          navigate("/login");
         }
       } catch (err) {
         const errorMessage =
           err.message ||
           "Registration failed. Email might already exist.";
         setServerError(errorMessage);
+        notify.registerError(errorMessage);
       } finally {
         setLoading(false);
       }

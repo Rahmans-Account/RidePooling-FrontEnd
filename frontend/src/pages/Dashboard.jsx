@@ -8,13 +8,19 @@ import {
   ChevronRight,
   Zap,
   Car,
-  Calendar,
 } from "lucide-react";
 import authService from "../services/authService";
+import rideService from "../services/rideService";
+import bookingService from "../api/bookingService";
+import { paymentService } from "../api/paymentService";
+import { notify } from "../utils/notify";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("Commuter");
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [stats, setStats] = useState({ totalRides: 0, totalBookings: 0 });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchName = async () => {
@@ -29,6 +35,60 @@ export default function Dashboard() {
       }
     };
     fetchName();
+  }, []);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!authService.isAuthenticated()) return;
+      
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser?._id) return;
+      
+      setLoading(true);
+      try {
+        const [ridesRes, bookingsRes, paymentsRes] = await Promise.all([
+          rideService.getMyRides(),
+          bookingService.getMyBookings(),
+          paymentService.getPaymentHistory("passenger"),
+        ]);
+
+        // Validate that rides belong to current user (driver)
+        const userRides = (ridesRes?.data?.rides || []).filter(
+          (ride) => ride.driver?._id === currentUser._id || ride.driver === currentUser._id
+        );
+        
+        // Validate that bookings belong to current user (passenger)
+        const userBookings = (bookingsRes?.data?.bookings || []).filter(
+          (booking) => booking.driver?._id !== currentUser._id
+        );
+
+        setStats({ 
+          totalRides: userRides.length, 
+          totalBookings: userBookings.length 
+        });
+
+        const payments = paymentsRes?.data?.data || [];
+        const normalized = payments.slice(0, 4).map((p) => {
+          const start = p.ride?.startLocation?.address || "Ride";
+          const end = p.ride?.endLocation?.address || "";
+          const title = end ? `${start} → ${end}` : start;
+          const amountValue = Number(p.amount || 0).toFixed(2);
+          const amount = p.status === "completed" ? `-$${amountValue}` : `Pending`;
+          const date = p.createdAt
+            ? new Date(p.createdAt).toLocaleString()
+            : "";
+          return { title, date, amount, type: "book" };
+        });
+        setRecentActivities(normalized);
+      } catch (err) {
+        console.error("Dashboard data load failed", err);
+        notify.error("Could not refresh dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
   }, []);
 
   return (
@@ -109,18 +169,18 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-4">
-              <ActivityItem
-                title="Tech Park Alpha"
-                date="Today, 09:00 AM"
-                amount="+$15.00"
-                type="offer"
-              />
-              <ActivityItem
-                title="City Downtown"
-                date="Yesterday, 06:15 PM"
-                amount="-$10.00"
-                type="book"
-              />
+              {recentActivities.length === 0 && !loading && (
+                <p className="text-slate-400 text-sm">No recent payments yet.</p>
+              )}
+              {recentActivities.map((item, idx) => (
+                <ActivityItem
+                  key={`${item.title}-${idx}`}
+                  title={item.title}
+                  date={item.date}
+                  amount={item.amount}
+                  type={item.type}
+                />
+              ))}
             </div>
           </div>
 
@@ -163,14 +223,14 @@ export default function Dashboard() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
                 Total Rides
               </p>
-              <p className="text-2xl font-black text-indigo-600">12</p>
+              <p className="text-2xl font-black text-indigo-600">{stats.totalRides}</p>
             </div>
             <div className="w-px h-10 bg-slate-100 hidden md:block" />
             <div className="text-center md:text-left">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
                 Total Bookings
               </p>
-              <p className="text-2xl font-black text-emerald-600">8</p>
+              <p className="text-2xl font-black text-emerald-600">{stats.totalBookings}</p>
             </div>
           </div>
 
