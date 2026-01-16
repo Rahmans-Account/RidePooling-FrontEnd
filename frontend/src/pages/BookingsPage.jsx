@@ -8,12 +8,16 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const activeBookings = bookings.filter(
+    (b) => (b.rideStatus || "").toLowerCase() !== "completed"
+  );
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         const response = await bookingService.getMyBookings();
         console.log("Bookings fetched:", response);
-        setBookings(response.data.bookings || []);
+        setBookings(response.bookings || response.data?.bookings || []);
       } catch (err) {
         console.error("Error fetching bookings:", err);
         setError(
@@ -69,11 +73,11 @@ export default function BookingsPage() {
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Your Bookings</h1>
           <p className="text-slate-600 mt-2 flex items-center gap-2">
             <CheckCircle size={18} className="text-indigo-600" />
-            You have <span className="font-bold text-indigo-600">{bookings.length}</span> booking{bookings.length !== 1 ? 's' : ''}
+            You have <span className="font-bold text-indigo-600">{activeBookings.length}</span> active booking{activeBookings.length !== 1 ? 's' : ''}
           </p>
         </div>
 
-        {bookings.length === 0 ? (
+        {activeBookings.length === 0 ? (
           <div className="bg-white rounded-3xl shadow-lg border-2 border-slate-100 p-12 text-center">
             <AlertCircle className="text-slate-300 mx-auto mb-4" size={48} />
             <p className="text-slate-600 font-semibold text-lg">No bookings yet</p>
@@ -85,7 +89,7 @@ export default function BookingsPage() {
             onCancelBooking={handleCancelBooking}
             onRefresh={async () => {
               const response = await bookingService.getMyBookings();
-              setBookings(response.data.bookings || []);
+              setBookings(response.bookings || response.data?.bookings || []);
             }}
           />
         )}

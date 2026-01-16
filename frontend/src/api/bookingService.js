@@ -63,6 +63,39 @@ export const bookingService = {
       throw error;
     }
   },
+
+  acceptBooking: async (rideId, passengerId) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/accept/${passengerId}`);
+      notify.success('Booking accepted! Ride code generated.');
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Failed to accept booking');
+      throw error;
+    }
+  },
+
+  rejectBooking: async (rideId, passengerId) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/reject/${passengerId}`);
+      notify.success('Booking rejected');
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Failed to reject booking');
+      throw error;
+    }
+  },
+
+  verifyPickupCode: async (rideId, code) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/verify-pickup`, { code });
+      notify.success('Pickup verified! Ride started.');
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Invalid ride code');
+      throw error;
+    }
+  },
 };
 
 export default bookingService;

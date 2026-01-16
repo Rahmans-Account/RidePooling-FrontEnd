@@ -4,8 +4,7 @@ import {
   Car,
   Book,
   LogOut,
-  ShieldCheck,
-  Zap,
+  History,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -21,6 +20,7 @@ export default function SideBar() {
     { name: "My Rides", icon: <Car size={20} />, path: "/my-rides" },
     { name: "User Bookings", icon: <Book size={20} />, path: "/bookings" },
     { name: "Rider Bookings", icon: <Book size={20} />, path: "/rider-bookings" },
+    { name: "History of Rides", icon: <History size={20} />, path: "/history" },
   ];
 
   return (

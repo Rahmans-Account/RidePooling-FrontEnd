@@ -72,6 +72,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
   const [elapsedTime, setElapsedTime] = useState(0);
   const trackingIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const timerStartTimeRef = useRef(null); // Ref to track actual start time for accuracy
 
   // Calculate map center
   const mapCenter = driverLocation 
@@ -116,41 +117,54 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
     });
 
     return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
       stopTracking();
       socketService.removeAllListeners();
     };
   }, [rideId, isDriver]);
 
-  // Start location tracking (driver only)
+  // Start location tracking
   const startTracking = () => {
-    if (!isDriver) return;
-
     // Request permission
     geolocationService.requestPermission().then(result => {
       if (result.granted) {
         setTrackingEnabled(true);
-        setPassengerLocation({
-          latitude: result.position.latitude,
-          longitude: result.position.longitude
-        });
 
-        // Send location every 3 seconds
-        trackingIntervalRef.current = setInterval(() => {
-          geolocationService.getCurrentPosition().then(position => {
-            socketService.updateLocation({
-              latitude: position.latitude,
-              longitude: position.longitude,
-              speed: position.speed,
-              heading: position.heading
+        if (isDriver) {
+          // Driver sends location updates
+          trackingIntervalRef.current = setInterval(() => {
+            geolocationService.getCurrentPosition().then(position => {
+              socketService.updateLocation({
+                latitude: position.latitude,
+                longitude: position.longitude,
+                speed: position.speed,
+                heading: position.heading
+              });
+            }).catch(error => {
+              console.error('Geolocation error:', error);
             });
-            setPassengerLocation({
-              latitude: position.latitude,
-              longitude: position.longitude
-            });
-          }).catch(error => {
-            console.error('Error getting location:', error);
+          }, 3000);
+        } else {
+          // Passenger shares their location
+          setPassengerLocation({
+            latitude: result.position.latitude,
+            longitude: result.position.longitude
           });
-        }, 3000); // Update every 3 seconds
+
+          trackingIntervalRef.current = setInterval(() => {
+            geolocationService.getCurrentPosition().then(position => {
+              const locationData = {
+                latitude: position.latitude,
+                longitude: position.longitude
+              };
+              setPassengerLocation(locationData);
+              socketService.updatePassengerLocation(locationData);
+            }).catch(error => {
+              console.error('Geolocation error:', error);
+            });
+          }, 5000); // Update every 5 seconds for passenger
+        }
       } else {
         alert(result.error);
       }
@@ -166,20 +180,29 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
     setTrackingEnabled(false);
   };
 
-  // Timer functions
+  // Timer functions - using ref for real-time accuracy
   const startTimer = () => {
+    console.log('⏱️ Timer started');
+    timerStartTimeRef.current = Date.now();
     setTimerStarted(true);
     setElapsedTime(0);
+    
+    // Update display every 100ms for smooth animation
     timerIntervalRef.current = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
-    }, 1000);
+      if (timerStartTimeRef.current) {
+        const actualElapsed = Math.floor((Date.now() - timerStartTimeRef.current) / 1000);
+        setElapsedTime(actualElapsed);
+      }
+    }, 100);
   };
 
   const stopTimer = () => {
+    console.log('⏸️ Timer stopped, elapsed:', elapsedTime);
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+    timerStartTimeRef.current = null;
     setTimerStarted(false);
     setElapsedTime(0);
   };
@@ -195,15 +218,23 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
     const handlePaymentComplete = (data) => {
       console.log('🎉 Payment complete handler called with data:', data);
       if (isDriver) {
-        console.log('💳 Payment completed for driver - stopping timer');
-        setTimerStarted(false); // Stop showing timer
-        stopTimer(); // Clear the interval
+        console.log('💳 Payment completed for driver - stopping timer immediately');
+        // Stop timer immediately - don't wait for state update
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        timerStartTimeRef.current = null;
+        setTimerStarted(false);
+        setElapsedTime(0);
+        stopTracking();
+        
         alert(`✅ Payment Confirmed!\n₹${data?.amount || 0} received\n\nRedirecting to Payment History...`);
         
         // Close the tracking overlay after a moment
         setTimeout(() => {
           console.log('Closing tracking and navigating...');
-          onClose(); // Close the LiveTracking overlay
+          onClose();
           navigate('/payment-history');
         }, 1500);
       }
@@ -266,8 +297,8 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         console.log('Opening payment modal for passenger with ride data:', completeRideData, 'paymentPending:', paymentPending);
         setShowPaymentModal(true);
       } else if (isDriver && paymentPending) {
-        console.log('Driver completed; waiting for all passengers to pay');
-        startTimer();
+        console.log('Driver completed; waiting for all passengers to pay');        // Stop any existing timer first
+        stopTimer();        startTimer();
       }
     } catch (error) {
       console.error('Failed to mark completion:', error);
@@ -284,7 +315,11 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <button
-              onClick={onClose}
+              onClick={() => {
+                stopTimer();
+                stopTracking();
+                onClose();
+              }}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
             >
               ← Back
@@ -434,36 +469,103 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
       </div>
 
       {/* Chat panel */}
-      <div className="absolute bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl overflow-hidden z-20">
-        <div className="bg-slate-900 px-4 py-3">
-          <h3 className="text-white font-bold">Chat with {isDriver ? 'Passenger' : 'Driver'}</h3>
-        </div>
-        <div className="h-64 overflow-y-auto p-4 space-y-2">
-          {messages.map((msg, idx) => (
-            <div key={idx} className="bg-slate-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-700">{msg.userName}</p>
-              <p className="text-sm text-slate-900">{msg.message}</p>
-              <p className="text-xs text-slate-400 mt-1">
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </p>
+      <div className="absolute bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl overflow-hidden z-20 flex flex-col max-h-96">
+        {/* Vehicle Details Tab */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white">
+          <h3 className="font-bold mb-3 text-sm">🚗 Vehicle Details</h3>
+          {rideData?.driver?.vehicle || rideFullData?.vehicleInfo ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span>Vehicle:</span>
+                <span className="font-semibold">{rideData?.driver?.vehicle || `${rideFullData?.vehicleInfo?.make || ''} ${rideFullData?.vehicleInfo?.model || ''}`}</span>
+              </div>
+              {rideFullData?.vehicleInfo?.licensePlate && (
+                <div className="flex justify-between">
+                  <span>License Plate:</span>
+                  <span className="font-mono font-bold bg-yellow-300 text-black px-2 py-1 rounded">{rideFullData.vehicleInfo.licensePlate}</span>
+                </div>
+              )}
+              {rideFullData?.vehicleInfo?.registrationNumber && (
+                <div className="flex justify-between">
+                  <span>Registration:</span>
+                  <span className="font-semibold">{rideFullData.vehicleInfo.registrationNumber}</span>
+                </div>
+              )}
+              {rideFullData?.vehicleInfo?.color && (
+                <div className="flex justify-between items-center">
+                  <span>Color:</span>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-5 h-5 rounded-full border-2 border-white" 
+                      style={{
+                        backgroundColor: rideFullData.vehicleInfo.color.toLowerCase().includes('white') ? '#fff' :
+                          rideFullData.vehicleInfo.color.toLowerCase().includes('black') ? '#000' :
+                          rideFullData.vehicleInfo.color.toLowerCase().includes('red') ? '#ef4444' :
+                          rideFullData.vehicleInfo.color.toLowerCase().includes('blue') ? '#3b82f6' :
+                          rideFullData.vehicleInfo.color.toLowerCase().includes('silver') ? '#d1d5db' :
+                          rideFullData.vehicleInfo.color.toLowerCase().includes('gray') ? '#6b7280' : '#ccc'
+                      }}
+                    />
+                    <span className="font-semibold">{rideFullData.vehicleInfo.color}</span>
+                  </div>
+                </div>
+              )}
+              {rideFullData?.vehicleInfo?.year && (
+                <div className="flex justify-between">
+                  <span>Year:</span>
+                  <span className="font-semibold">{rideFullData.vehicleInfo.year}</span>
+                </div>
+              )}
+              {rideFullData?.vehicleInfo?.fuelType && (
+                <div className="flex justify-between">
+                  <span>Fuel:</span>
+                  <span className="font-semibold capitalize">{rideFullData.vehicleInfo.fuelType}</span>
+                </div>
+              )}
+              {rideFullData?.vehicleInfo?.acAvailable && (
+                <div className="flex justify-between">
+                  <span>AC:</span>
+                  <span className="font-semibold text-green-300">✓ Available</span>
+                </div>
+              )}
             </div>
-          ))}
+          ) : (
+            <p className="text-xs text-blue-100">Vehicle details loading...</p>
+          )}
         </div>
-        <form onSubmit={handleSendMessage} className="border-t p-4 flex gap-2">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Send
-          </button>
-        </form>
+
+        {/* Chat Section */}
+        <div className="flex-1 flex flex-col">
+          <div className="bg-slate-50 px-4 py-2 border-b">
+            <h3 className="text-sm font-bold text-slate-700">Chat with {isDriver ? 'Passenger' : 'Driver'}</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {messages.map((msg, idx) => (
+              <div key={idx} className="bg-slate-100 rounded-lg p-3">
+                <p className="text-xs font-semibold text-slate-700">{msg.userName}</p>
+                <p className="text-sm text-slate-900">{msg.message}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </p>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleSendMessage} className="border-t p-3 flex gap-2 bg-white">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+            >
+              Send
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Payment Completion Modal */}
@@ -473,10 +575,14 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         totalAmount={rideFullData?.totalAmount || 0}
         onClose={() => {
           setShowPaymentModal(false);
+          stopTimer();
+          stopTracking();
           onClose(); // Close tracking when payment done
         }}
         onSuccess={() => {
           setShowPaymentModal(false);
+          stopTimer();
+          stopTracking();
           onClose(); // Close tracking when payment done
         }}
       />

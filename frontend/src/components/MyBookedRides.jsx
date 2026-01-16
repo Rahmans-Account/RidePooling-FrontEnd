@@ -8,8 +8,12 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
   const [completingId, setCompletingId] = useState(null);
   const [trackingBooking, setTrackingBooking] = useState(null);
 
+  const activeBookings = (bookings || []).filter(
+    (b) => (b.rideStatus || "").toLowerCase() !== "completed"
+  );
+
   const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
+    switch ((status || "").toLowerCase()) {
       case "confirmed":
       case "accepted":
         return "text-green-600 bg-green-100";
@@ -26,59 +30,54 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
   };
 
   const handleCancel = async (rideId) => {
-    if (window.confirm("Are you sure you want to cancel this booking?")) {
-      setCancellingId(rideId);
-      try {
-        await onCancelBooking?.(rideId);
-      } finally {
-        setCancellingId(null);
-      }
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+    setCancellingId(rideId);
+    try {
+      await onCancelBooking?.(rideId);
+    } finally {
+      setCancellingId(null);
     }
   };
 
   const handleMarkDone = async (rideId) => {
-    if (window.confirm("Have you reached your destination? This will mark the ride as complete from your side.")) {
-      setCompletingId(rideId);
-      try {
-        await bookingService.markCompletedByPassenger(rideId);
-        alert("Ride marked as complete! Waiting for driver confirmation.");
-        onRefresh?.(); // Refresh the bookings list
-      } catch (error) {
-        alert(error.response?.data?.message || "Failed to mark as complete");
-      } finally {
-        setCompletingId(null);
-      }
+    if (!window.confirm("Have you reached your destination? This will mark the ride as complete from your side.")) return;
+    setCompletingId(rideId);
+    try {
+      await bookingService.markCompletedByPassenger(rideId);
+      alert("Ride marked as complete! Waiting for driver confirmation.");
+      onRefresh?.();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to mark as complete");
+    } finally {
+      setCompletingId(null);
     }
   };
 
   const formatDateTime = (dateTime) => {
     if (!dateTime) return "N/A";
     const date = new Date(dateTime);
-    return date.toLocaleDateString([], { 
-      month: "short", 
+    return date.toLocaleDateString([], {
+      month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-1">My Booked Rides</h2>
-      <p className="text-gray-500 mb-6">
-        View the rides you’ve booked and their current status.
-      </p>
+      <p className="text-gray-500 mb-6">Active bookings only. Completed rides live in History of Rides.</p>
 
-      {bookings.length > 0 ? (
+      {activeBookings.length > 0 ? (
         <div className="space-y-4">
-          {bookings.map((booking) => (
+          {activeBookings.map((booking) => (
             <div
-              key={booking._id}
+              key={booking._id || booking.rideId}
               className="bg-white shadow-sm border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div className="flex-1 space-y-4">
-                  {/* Route */}
                   <div className="flex items-start gap-3">
                     <MapPin size={20} className="text-indigo-600 mt-1 flex-shrink-0" />
                     <div className="flex-1">
@@ -89,29 +88,22 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
                     </div>
                   </div>
 
-                  {/* Date & Time */}
                   <div className="flex items-start gap-3">
                     <Clock size={20} className="text-indigo-600 mt-1 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Departure</p>
-                      <p className="font-bold text-slate-900">
-                        {formatDateTime(booking.departureTime)}
-                      </p>
+                      <p className="font-bold text-slate-900">{formatDateTime(booking.departureTime)}</p>
                     </div>
                   </div>
 
-                  {/* Driver */}
                   <div className="flex items-start gap-3">
                     <Users size={20} className="text-indigo-600 mt-1 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-1">Driver</p>
-                      <p className="font-bold text-slate-900">
-                        {booking.driver?.name || "Unknown Driver"}
-                      </p>
+                      <p className="font-bold text-slate-900">{booking.driver?.name || "Unknown Driver"}</p>
                     </div>
                   </div>
 
-                  {/* Seats & Price */}
                   <div className="flex items-start gap-3">
                     <IndianRupee size={20} className="text-indigo-600 mt-1 flex-shrink-0" />
                     <div className="flex-1">
@@ -121,19 +113,37 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
                       </p>
                     </div>
                   </div>
+
+                  {/* Vehicle Details */}
+                  {booking.driver?.vehicle && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                      <p className="text-xs uppercase font-bold text-blue-700">🚗 Vehicle</p>
+                      <p className="text-sm font-semibold text-slate-900">{booking.driver.vehicle}</p>
+                    </div>
+                  )}
+
+                  {/* Show Ride Code if accepted */}
+                  {booking.status === 'accepted' && booking.pickupCode && !booking.pickupVerified && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4">
+                      <p className="text-xs font-bold text-green-700 uppercase mb-1">🎯 Your Ride Code</p>
+                      <p className="text-2xl font-black text-green-800 tracking-wide">{booking.pickupCode}</p>
+                      <p className="text-xs text-green-600 mt-2">Share this code with your driver at pickup</p>
+                    </div>
+                  )}
+
+                  {booking.pickupVerified && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2">
+                      <Check size={18} className="text-blue-600" />
+                      <p className="text-sm font-semibold text-blue-700">Pickup Verified • Ride In Progress</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Status & Action */}
                 <div className="flex flex-col items-end gap-4 md:items-end">
-                  <span
-                    className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusStyle(
-                      booking.status
-                    )}`}
-                  >
-                    {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Pending"}
+                  <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusStyle(booking.status)}`}>
+                    {(booking.status || "Pending").charAt(0).toUpperCase() + (booking.status || "Pending").slice(1)}
                   </span>
-                  
-                  {/* Track Ride - visible when ride is active or in progress */}
+
                   {(booking.rideStatus === "active" || booking.rideStatus === "in_progress") && (
                     <button
                       onClick={() => setTrackingBooking(booking)}
@@ -143,8 +153,7 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
                       Track Ride
                     </button>
                   )}
-                  
-                  {/* Done Button - Show for in-progress rides */}
+
                   {booking.rideStatus === "in_progress" && booking.status !== "completed" && (
                     <button
                       onClick={() => handleMarkDone(booking.rideId)}
@@ -155,8 +164,7 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
                       {completingId === booking.rideId ? "Marking..." : "Done"}
                     </button>
                   )}
-                  
-                  {/* Cancel Button - Show for active rides */}
+
                   {booking.rideStatus === "active" && booking.status !== "cancelled" && (
                     <button
                       onClick={() => handleCancel(booking.rideId)}
@@ -188,16 +196,11 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
               d="M8 16h8M8 12h8m-5 8h2a9 9 0 100-18h-2a9 9 0 100 18z"
             />
           </svg>
-          <p className="text-lg font-medium text-gray-700 mb-2">
-            No bookings found
-          </p>
-          <p className="text-gray-500">
-            You haven’t booked any rides yet. Start exploring rides to book one!
-          </p>
+          <p className="text-lg font-medium text-gray-700 mb-2">No active bookings</p>
+          <p className="text-gray-500">Completed rides are available in History of Rides.</p>
         </div>
       )}
 
-      {/* Live Tracking Overlay */}
       {trackingBooking && (
         <LiveTracking
           rideId={trackingBooking.rideId}

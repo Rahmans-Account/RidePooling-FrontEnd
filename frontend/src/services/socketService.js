@@ -70,6 +70,15 @@ class SocketService {
     this.socket.emit('update-location', locationData);
   }
 
+  // Update passenger location (passenger only)
+  updatePassengerLocation(locationData) {
+    if (!this.socket) {
+      console.error('Socket not connected');
+      return;
+    }
+    this.socket.emit('update-passenger-location', locationData);
+  }
+
   // Send chat message
   sendMessage(message) {
     if (!this.socket) {
@@ -144,6 +153,11 @@ class SocketService {
       console.log('✅ Payment-completed event received:', data);
       callback(data);
     });
+  }
+
+  onPassengerLocationUpdate(callback) {
+    if (!this.socket) return;
+    this.socket.on('passenger-location-update', callback);
   }
 
   offLocationUpdate(callback) {
