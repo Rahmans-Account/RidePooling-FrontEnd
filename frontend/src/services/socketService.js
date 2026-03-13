@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { notify } from '../utils/notify';
 
 class SocketService {
   constructor() {
@@ -12,13 +13,15 @@ class SocketService {
       return this.socket;
     }
 
-    const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:5003';
+    const rawUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5003';
+    const SERVER_URL = rawUrl.replace(/\/api\/?$/, '');
 
     this.socket = io(SERVER_URL, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 15000,
+      reconnectionAttempts: 20,
       transports: ['websocket', 'polling']
     });
 
@@ -38,6 +41,16 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Connection error:', error.message);
+      if (error.message?.toLowerCase().includes('jwt') || error.message?.toLowerCase().includes('token')) {
+        localStorage.removeItem('jwtToken');
+        notify.sessionExpired();
+      }
+    });
+
+    this.socket.on('auth-expired', () => {
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('user');
+      notify.sessionExpired();
     });
 
     return this.socket;
@@ -110,6 +123,22 @@ class SocketService {
     this.socket.emit('ride-completed');
   }
 
+  // Safety & Status
+  sendSos(rideId, location) {
+    if (!this.socket) return;
+    this.socket.emit('send-sos', { rideId, location });
+  }
+
+  sendRideDropped(rideId) {
+    if (!this.socket) return;
+    this.socket.emit('ride-dropped', { rideId });
+  }
+
+  sendRideReached(rideId) {
+    if (!this.socket) return;
+    this.socket.emit('ride-reached', { rideId });
+  }
+
   // Event listeners
   onLocationUpdate(callback) {
     if (!this.socket) return;
@@ -158,6 +187,16 @@ class SocketService {
   onPassengerLocationUpdate(callback) {
     if (!this.socket) return;
     this.socket.on('passenger-location-update', callback);
+  }
+
+  onEmergencyAlert(callback) {
+    if (!this.socket) return;
+    this.socket.on('emergency-alert', callback);
+  }
+
+  onRideStatusUpdate(callback) {
+    if (!this.socket) return;
+    this.socket.on('ride-status-update', callback);
   }
 
   offLocationUpdate(callback) {

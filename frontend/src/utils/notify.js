@@ -180,10 +180,20 @@ export const notify = {
   },
 
   warning: (message) => {
-    notify(message, {
+    toast(message, {
       duration: 4000,
       position: 'top-right',
       icon: '⚠️',
+    });
+  },
+
+  // Alias kept for backward compatibility with existing call sites.
+  warn: (message, options = {}) => {
+    toast(message, {
+      duration: 4000,
+      position: 'top-right',
+      icon: '⚠️',
+      ...options,
     });
   },
 

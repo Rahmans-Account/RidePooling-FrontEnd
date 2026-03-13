@@ -14,7 +14,7 @@ import {
   ChevronRight 
 } from "lucide-react";
 import authService from "../services/authService";
-  import { notify } from "../utils/notify";
+import { notify } from "../utils/notify";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -28,6 +28,12 @@ export default function Register() {
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [kycFiles, setKycFiles] = useState({
+    licensePhoto: null,
+    idPhoto: null,
+    vehiclePhoto: null,
+    platePhoto: null,
+  });
   const navigate = useNavigate();
 
   const validate = () => {
@@ -61,6 +67,18 @@ export default function Register() {
       try {
         const response = await authService.register(form);
         if (response.success) {
+          const hasKycDocs = Object.values(kycFiles).some(Boolean);
+          if (hasKycDocs) {
+            const formData = new FormData();
+            Object.entries(kycFiles).forEach(([key, file]) => {
+              if (file) formData.append(key, file);
+            });
+            try {
+              await authService.uploadKYC(formData);
+            } catch (uploadErr) {
+              notify.warn(uploadErr.message || 'Account created, but KYC upload failed. You can upload later from profile.');
+            }
+          }
           notify.registerSuccess();
           navigate("/login");
         }
@@ -77,11 +95,11 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-6 font-[Poppins] selection:bg-indigo-100">
-      {/* Background Blobs */}
+    <div className="min-h-screen bg-pastel-cream flex flex-col justify-center items-center p-4 md:p-6 font-[Poppins] selection:bg-pastel-mint-light selection:text-pastel-mint-dark overflow-x-hidden">
+      {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-5%] right-[-5%] w-[35%] h-[35%] bg-blue-100/50 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-5%] left-[-5%] w-[35%] h-[35%] bg-indigo-100/50 rounded-full blur-3xl" />
+        <div className="absolute top-[-10%] left-[-10%] w-[55%] md:w-[40%] h-[40%] bg-pastel-mint-light/60 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[55%] md:w-[40%] h-[40%] bg-pastel-lavender-light/60 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
       {/* Back Button */}
@@ -89,22 +107,23 @@ export default function Register() {
         onClick={() => navigate("/")}
         className="group mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <div className="p-2 rounded-full bg-white shadow-sm border border-slate-100 group-hover:shadow-md transition-all">
+        <div className="p-2 rounded-full bg-white/70 shadow-sm border border-slate-200/70 group-hover:shadow-md transition-all">
           <ArrowLeft size={18} />
         </div>
-        <span className="text-sm font-medium">Return Home</span>
+        <span className="text-sm font-bold tracking-tight">Return Home</span>
       </button>
 
       {/* Registration Card */}
-      <div className="w-full max-w-2xl bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white p-8 md:p-12">
+      <div className="w-full max-w-2xl bg-white/80 backdrop-blur-xl rounded-4xl md:rounded-[3rem] shadow-pastel-shadow border border-slate-200/70 p-5 sm:p-8 md:p-12 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pastel-mint via-pastel-lavender to-pastel-pink" />
         
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl text-white shadow-lg shadow-indigo-200 mb-4">
-            <UserPlus size={26} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-pastel-lavender rounded-3xl text-slate-800 shadow-lg shadow-pastel-lavender/20 mb-6 border border-white/80">
+            <UserPlus size={28} />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
-          <p className="text-slate-500 mt-2 text-sm">Join thousands of smart commuters today</p>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Create Account</h2>
+          <p className="text-slate-500 mt-2 text-sm font-medium">Join thousands of smart commuters today</p>
         </div>
 
         {serverError && (
@@ -162,11 +181,33 @@ export default function Register() {
             />
           </div>
 
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Optional KYC Documents</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { key: 'licensePhoto', label: 'Driving License', color: 'bg-pastel-mint-light' },
+                    { key: 'idPhoto', label: 'Government ID', color: 'bg-pastel-lavender-light' },
+                    { key: 'vehiclePhoto', label: 'Vehicle Photo', color: 'bg-pastel-peach-light' },
+                    { key: 'platePhoto', label: 'Number Plate', color: 'bg-pastel-pink-light' },
+                  ].map((doc) => (
+                    <div key={doc.key} className={`border border-slate-200/70 shadow-sm rounded-2xl p-4 ${doc.color}/40`}>
+                      <p className="text-[10px] font-black text-slate-600 uppercase mb-2 tracking-tighter">{doc.label}</p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setKycFiles((prev) => ({ ...prev, [doc.key]: e.target.files?.[0] || null }))}
+                        className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border file:border-slate-200/70 file:text-[10px] file:font-semibold file:bg-white file:text-slate-700 hover:file:bg-slate-50 transition-all cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
           {/* Password - Full Width */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Secure Password</label>
             <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-pastel-lavender-dark transition-colors">
                 <Lock size={18} />
               </div>
               <input
@@ -175,14 +216,14 @@ export default function Register() {
                 placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
-                className={`w-full pl-11 pr-12 py-4 bg-slate-50/50 border ${
-                  errors.password ? "border-red-300" : "border-slate-100"
-                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all text-slate-900`}
+                className={`w-full pl-11 pr-12 py-4 bg-white/50 border ${
+                  errors.password ? "border-red-300 text-red-900" : "border-slate-200/70"
+                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-pastel-lavender-light focus:border-pastel-lavender transition-all text-slate-800 placeholder:text-slate-400`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-pastel-lavender-dark transition"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -193,24 +234,27 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2 group mt-4"
+            className="w-full mt-8 py-5 bg-gradient-to-r from-pastel-mint via-pastel-mint-dark to-pastel-lavender text-slate-800 font-black rounded-3xl shadow-lg shadow-pastel-mint/30 hover:shadow-pastel-mint/50 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 group transform hover:-translate-y-1"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" size={24} />
             ) : (
               <>
                 Create Account
-                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-slate-500 text-sm">
+        <div className="mt-10 text-center">
+          <p className="text-slate-500 text-sm font-medium">
             Already have an account?{" "}
-            <Link to="/login" className="text-indigo-600 hover:text-indigo-800 font-bold ml-1 transition">
-              Sign In
+            <Link
+              to="/login"
+              className="text-pastel-mint-dark hover:text-pastel-mint font-black ml-1 transition"
+            >
+              Sign in here
             </Link>
           </p>
         </div>
@@ -230,21 +274,26 @@ export default function Register() {
 
 // Helper component for clean code
 function InputField({ label, icon, error, ...props }) {
+  const isEmail = props.type === 'email';
+  const isPhone = props.name === 'phone';
+  const focusColor = isEmail ? 'focus:ring-pastel-lavender-light' : isPhone ? 'focus:ring-pastel-peach-light' : 'focus:ring-pastel-mint-light';
+  const iconColor = isEmail ? 'group-focus-within:text-pastel-lavender-dark' : isPhone ? 'group-focus-within:text-pastel-peach-dark' : 'group-focus-within:text-pastel-mint-dark';
+
   return (
     <div className="space-y-2">
-      <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">{label}</label>
+      <label className="text-xs font-black text-slate-700 uppercase tracking-widest ml-1">{label}</label>
       <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+        <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 ${iconColor} transition-colors`}>
           {icon}
         </div>
         <input
           {...props}
-          className={`w-full pl-11 pr-4 py-4 bg-slate-50/50 border ${
-            error ? "border-red-300" : "border-slate-100"
-          } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 text-sm`}
+          className={`w-full pl-11 pr-4 py-4 bg-white/50 border ${
+            error ? "border-red-300 text-red-900" : "border-slate-200/70"
+          } rounded-2xl outline-none focus:bg-white focus:ring-4 ${focusColor} transition-all text-slate-800 placeholder:text-slate-400 text-sm font-medium`}
         />
       </div>
-      {error && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{error}</p>}
+      {error && <p className="text-red-500 text-[10px] font-black uppercase mt-1 ml-1 leading-none">{error}</p>}
     </div>
   );
 }

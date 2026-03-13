@@ -15,7 +15,6 @@ import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 import RiderBookingsPage from "./pages/RiderBookingsPage";
 import RideHistoryPage from "./pages/RideHistoryPage";
 import Layout from "./components/Layout";
-import "leaflet/dist/leaflet.css";
 
 const router = createBrowserRouter([
   {
@@ -110,31 +109,26 @@ function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#fff',
-            color: '#363636',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(12px)',
+            color: '#1e293b',
+            borderRadius: '24px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
             fontSize: '14px',
-            fontWeight: '500',
+            fontWeight: '900',
+            fontFamily: 'Poppins',
           },
           success: {
             style: {
-              background: '#10b981',
-              color: '#fff',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#10b981',
+              background: '#A8E6CF',
+              color: '#1e293b',
             },
           },
           error: {
             style: {
-              background: '#ef4444',
-              color: '#fff',
-            },
-            iconTheme: {
-              primary: '#fff',
-              secondary: '#ef4444',
+              background: '#FFD3B6',
+              color: '#d14343',
             },
           },
         }}

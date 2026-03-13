@@ -64,11 +64,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-6 font-[Poppins] selection:bg-indigo-100">
+    <div className="min-h-screen bg-pastel-cream flex flex-col justify-center items-center p-4 md:p-6 font-[Poppins] selection:bg-pastel-mint-light selection:text-pastel-mint-dark overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-100/50 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-100/50 rounded-full blur-3xl" />
+        <div className="absolute top-[-10%] left-[-10%] w-[55%] md:w-[40%] h-[40%] bg-pastel-mint-light/60 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[55%] md:w-[40%] h-[40%] bg-pastel-lavender-light/60 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
       {/* Back Button */}
@@ -76,21 +76,22 @@ export default function Login() {
         onClick={() => navigate("/")}
         className="group mb-8 flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors duration-200"
       >
-        <div className="p-2 rounded-full bg-white shadow-sm group-hover:shadow-md border border-slate-100 transition-all">
+        <div className="p-2 rounded-full bg-white/70 shadow-sm group-hover:shadow-md border border-slate-200/70 transition-all">
           <ArrowLeft size={18} />
         </div>
-        <span className="text-sm font-medium">Back to Home</span>
+        <span className="text-sm font-bold">Back to Home</span>
       </button>
 
       {/* Card */}
-      <div className="w-full max-w-2xl bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white p-8 md:p-12">
+      <div className="w-full max-w-2xl bg-white/80 backdrop-blur-xl rounded-4xl md:rounded-[3rem] shadow-pastel-shadow border border-slate-200/70 p-5 sm:p-8 md:p-12 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pastel-mint to-pastel-lavender" />
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-200 mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-pastel-mint rounded-2xl text-slate-800 shadow-lg shadow-pastel-mint/20 mb-6 border border-white/80">
             <LogIn size={28} />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
-          <p className="text-slate-500 mt-2 text-sm">Please enter your details to sign in</p>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Welcome Back</h2>
+          <p className="text-slate-500 mt-2 text-sm font-medium">Please enter your details to sign in</p>
         </div>
 
         {/* Server Error Alert */}
@@ -106,7 +107,7 @@ export default function Login() {
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Email Address</label>
             <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-pastel-mint-dark transition-colors">
                 <Mail size={18} />
               </div>
               <input
@@ -115,9 +116,9 @@ export default function Login() {
                 placeholder="name@company.com"
                 value={form.email}
                 onChange={handleChange}
-                className={`w-full pl-11 pr-4 py-4 bg-slate-50 border ${
-                  errors.email ? "border-red-300 focus:ring-red-100" : "border-slate-100 focus:ring-indigo-100"
-                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400`}
+                className={`w-full pl-11 pr-4 py-4 bg-white/50 border ${
+                  errors.email ? "border-red-300 focus:ring-red-100 text-red-900" : "border-slate-200/70 focus:ring-pastel-mint-light"
+                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:border-pastel-mint transition-all text-slate-800 placeholder:text-slate-400`}
               />
             </div>
             {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email}</p>}
@@ -127,10 +128,10 @@ export default function Login() {
           <div className="space-y-2">
             <div className="flex justify-between items-center ml-1">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Password</label>
-              <a href="#" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition">Forgot?</a>
+              <button type="button" className="text-xs font-bold text-pastel-lavender-dark hover:text-pastel-lavender transition">Forgot?</button>
             </div>
             <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-pastel-lavender-dark transition-colors">
                 <Lock size={18} />
               </div>
               <input
@@ -139,9 +140,9 @@ export default function Login() {
                 placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
-                className={`w-full pl-11 pr-12 py-4 bg-slate-50 border ${
-                  errors.password ? "border-red-300 focus:ring-red-100" : "border-slate-100 focus:ring-indigo-100"
-                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400`}
+                className={`w-full pl-11 pr-12 py-4 bg-white/50 border ${
+                  errors.password ? "border-red-300 focus:ring-red-100 text-red-900" : "border-slate-200/70 focus:ring-pastel-lavender-light"
+                } rounded-2xl outline-none focus:bg-white focus:ring-4 focus:border-pastel-lavender transition-all text-slate-800 placeholder:text-slate-400`}
               />
               <button
                 type="button"
@@ -158,7 +159,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-4 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-indigo-600 shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+            className="w-full mt-4 py-5 bg-gradient-to-r from-pastel-mint to-pastel-mint-dark text-slate-800 font-black rounded-3xl shadow-lg shadow-pastel-mint/30 hover:shadow-pastel-mint/50 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group transform hover:-translate-y-1"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
@@ -173,11 +174,11 @@ export default function Login() {
 
         {/* Footer */}
         <div className="mt-10 text-center">
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-500 text-sm font-medium">
             New to the platform?{" "}
             <Link
               to="/register"
-              className="text-indigo-600 hover:text-indigo-800 font-bold ml-1 transition"
+              className="text-pastel-mint-dark hover:text-pastel-mint font-black ml-1 transition"
             >
               Create an account
             </Link>
@@ -186,7 +187,7 @@ export default function Login() {
       </div>
 
       {/* Small Legal Text */}
-      <p className="mt-8 text-slate-400 text-xs">
+      <p className="mt-6 md:mt-8 text-slate-400 text-xs text-center px-3">
         By signing in, you agree to our Terms of Service & Privacy Policy.
       </p>
 

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-export default function SideBar() {
+export default function SideBar({ isOpen, onClose }) {
   const location = useLocation();
 
   const navItems = [
@@ -24,65 +24,81 @@ export default function SideBar() {
   ];
 
   return (
-    <aside className="w-72 bg-white h-screen flex flex-col border-r border-slate-100 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-20">
-      {/* Brand Logo Section */}
-      <div className="p-8 flex items-center gap-3">
-        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-          <Car size={22} strokeWidth={2.5} />
-        </div>
-        <span className="font-bold text-xl tracking-tight text-slate-900">
-          RidePooling
-        </span>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 mt-4 space-y-2">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.name}
-              to={item.path}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                isActive
-                  ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100 font-semibold"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <span
-                className={`${
-                  isActive
-                    ? "text-white"
-                    : "text-slate-400 group-hover:text-indigo-500"
-                } transition-colors`}
-              >
-                {item.icon}
-              </span>
-              {item.name}
-              {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/50" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Logout */}
-      <div className="p-6 border-t border-slate-50">
+    <>
+      {isOpen && (
         <button
-          onClick={() => {
-            localStorage.removeItem("jwtToken");
-            window.location.href = "/";
-          }}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-100 text-slate-500 font-bold text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all group"
-        >
-          <LogOut
-            size={18}
-            className="group-hover:-translate-x-1 transition-transform"
-          />
-          Logout Account
-        </button>
-      </div>
-    </aside>
+          type="button"
+          className="fixed inset-0 z-30 bg-slate-900/25 md:hidden"
+          onClick={onClose}
+          aria-label="Close menu overlay"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 bg-white/85 backdrop-blur-2xl flex flex-col border-r border-slate-200/70 shadow-pastel-shadow transform transition-transform duration-500 md:static md:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Brand Logo Section */}
+        <div className="p-8 md:p-10 flex items-center gap-4 group cursor-pointer">
+          <div className="w-12 h-12 bg-gradient-to-br from-pastel-lavender-dark to-pastel-lavender rounded-[1.25rem] flex items-center justify-center text-slate-800 shadow-lg shadow-pastel-lavender/20 group-hover:scale-110 transition-transform duration-500 border-2 border-white">
+            <Car size={24} strokeWidth={3} />
+          </div>
+          <span className="font-black text-2xl tracking-tighter text-slate-800">
+            Ride<span className="text-pastel-lavender-dark">Pool</span>
+          </span>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 mt-2 md:mt-4 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                onClick={onClose}
+                className={`flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-500 group relative overflow-hidden ${
+                  isActive
+                    ? "bg-pastel-lavender-light/80 border border-pastel-lavender text-slate-800 shadow-lg shadow-pastel-lavender/15 font-black"
+                    : "text-slate-500 border border-transparent hover:bg-white hover:border-slate-200/70 hover:text-slate-900 hover:shadow-pastel-shadow"
+                }`}
+              >
+                <span
+                  className={`${
+                    isActive
+                      ? "text-slate-800"
+                      : "text-slate-400 group-hover:text-pastel-lavender-dark"
+                  } transition-colors`}
+                >
+                  {item.icon}
+                </span>
+                {item.name}
+                {isActive && (
+                  <div className="ml-auto w-2 h-2 rounded-full bg-pastel-mint-dark shadow-[0_0_8px_#DCD6F7]" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-8 border-t-2 border-dashed border-white/50">
+          <button
+            onClick={() => {
+              localStorage.removeItem("jwtToken");
+              window.location.href = "/";
+            }}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white border border-slate-200/80 text-slate-500 font-black text-xs uppercase tracking-widest hover:bg-pastel-pink-light/20 hover:text-pastel-pink-dark hover:border-pastel-pink-light/50 transition-all group shadow-sm hover:shadow-md"
+          >
+            <LogOut
+              size={18}
+              strokeWidth={3}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

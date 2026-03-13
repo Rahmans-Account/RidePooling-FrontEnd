@@ -48,30 +48,34 @@ export default function RideCard({ ride }) {
   const startLocation = ride.startLocation?.address?.split(',')[0] || "Start";
   const endLocation = ride.endLocation?.address?.split(',')[0] || "Destination";
   const pricePerSeat = ride.pricePerSeat || 0;
+  const estimatedFare = Number(ride.fareBreakdown?.totalFare || 0);
+  const platformFee = Number(ride.fareBreakdown?.platformFee || 0);
+  const driverEarningEstimate = estimatedFare > 0 ? Math.max(0, estimatedFare - platformFee) : 0;
 
   return (
     <div
       onClick={handleClick}
-      className="group relative bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-500 cursor-pointer hover:-translate-y-2 overflow-hidden"
+      className="group relative bg-white/80 backdrop-blur-xl rounded-[3rem] border border-slate-200/70 p-6 shadow-pastel-shadow hover:shadow-2xl hover:shadow-pastel-lavender/20 transition-all duration-700 cursor-pointer hover:-translate-y-2 overflow-hidden"
     >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-pastel-lavender-light/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity" />
       {/* Top Section: Driver & Timing */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-8 relative z-10">
+        <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pastel-lavender-dark to-pastel-lavender flex items-center justify-center text-slate-800 font-black shadow-lg shadow-pastel-lavender/20 group-hover:scale-110 transition-transform duration-500">
               {driverAvatar}
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-              <ShieldCheck size={14} className="text-emerald-500" fill="currentColor" fillOpacity={0.1} />
+            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-pastel-mint-light">
+              <ShieldCheck size={14} className="text-pastel-mint-dark" fill="currentColor" fillOpacity={0.2} />
             </div>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 text-sm leading-tight group-hover:text-indigo-600 transition-colors">
+            <h4 className="font-black text-slate-800 text-sm leading-tight group-hover:text-pastel-lavender-dark transition-colors tracking-tight">
               {driverName}
             </h4>
-            <div className="flex items-center gap-1 mt-1">
-              <Star size={12} className="text-amber-400 fill-amber-400" />
-              <span className="text-[10px] font-black text-slate-400">
+            <div className="flex items-center gap-1.5 mt-1.5 px-2 py-0.5 bg-white/70 rounded-full border border-slate-200/70 w-fit">
+              <Star size={10} className="text-pastel-peach-dark fill-pastel-peach-dark" />
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                 {driverRatingValue}
               </span>
             </div>
@@ -79,71 +83,82 @@ export default function RideCard({ ride }) {
         </div>
 
         <div className="text-right">
-          <div className="flex items-center justify-end gap-1.5 text-indigo-600 mb-1">
-            <Clock size={14} strokeWidth={2.5} />
-            <span className="text-xs font-black uppercase tracking-tight">{time}</span>
+          <div className="flex items-center justify-end gap-2 text-pastel-lavender-dark mb-1">
+            <Clock size={16} strokeWidth={3} />
+            <span className="text-sm font-black uppercase tracking-tighter">{time}</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</span>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-60">{day}</span>
         </div>
       </div>
 
       {/* Route Section */}
-      <div className="relative mb-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full border-2 border-indigo-500 bg-white" />
-              <p className="text-xs font-bold text-slate-800 line-clamp-1 uppercase tracking-tight">
+      <div className="relative mb-8 px-2 z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex-1 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full border-[3px] border-pastel-lavender-dark bg-white shadow-[0_0_8px_#DCD6F7]" />
+              <p className="text-[11px] font-black text-slate-700 line-clamp-1 uppercase tracking-wider">
                 {startLocation}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin size={12} className="text-emerald-500" />
-              <p className="text-xs font-bold text-slate-800 line-clamp-1 uppercase tracking-tight">
+            <div className="flex items-center gap-3">
+              <MapPin size={16} className="text-pastel-mint-dark" strokeWidth={3} />
+              <p className="text-[11px] font-black text-slate-700 line-clamp-1 uppercase tracking-wider">
                 {endLocation}
               </p>
             </div>
           </div>
           
           {/* Visual Divider */}
-          <div className="w-px h-8 bg-slate-100" />
+          <div className="w-px h-12 bg-slate-100/50" />
           
           {/* Price Tag */}
-          <div className="text-right pl-2">
-            <div className="flex items-center justify-end text-indigo-600">
-              <IndianRupee size={14} strokeWidth={3} />
-              <span className="text-2xl font-black tracking-tighter">{pricePerSeat}</span>
-            </div>
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">per seat</p>
+          <div className="text-right min-w-[80px]">
+            {estimatedFare > 0 ? (
+              <>
+                <div className="flex items-center justify-end text-slate-800">
+                  <span className="text-xs font-black text-pastel-lavender-dark mr-1">₹</span>
+                  <span className="text-3xl font-black tracking-tighter leading-none">{estimatedFare}</span>
+                </div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-60 text-right">Estimate</p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-end text-slate-800">
+                  <span className="text-xs font-black text-pastel-lavender-dark mr-1">₹</span>
+                  <span className="text-3xl font-black tracking-tighter leading-none">{pricePerSeat}</span>
+                </div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-60 text-right">Per Seat</p>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Bottom Section: Seats & Action */}
-      <div className="flex items-center justify-between pt-5 border-t border-slate-50">
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${
+      <div className="flex items-center justify-between pt-6 border-t-2 border-dashed border-slate-50 relative z-10">
+        <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-2xl ${
           seatsLeft > 0 
-            ? 'bg-emerald-50' 
-            : 'bg-red-50'
+            ? 'bg-pastel-mint-light/20 border border-pastel-mint-light' 
+            : 'bg-pastel-pink-light/20 border border-pastel-pink-light'
         }`}>
-          <Users size={14} className={seatsLeft > 0 ? 'text-emerald-600' : 'text-red-600'} />
-          <span className={`text-[11px] font-bold ${
+          <div className={`w-1.5 h-1.5 rounded-full ${seatsLeft > 0 ? 'bg-pastel-mint-dark animate-pulse' : 'bg-pastel-pink-dark'}`} />
+          <span className={`text-[10px] font-black uppercase tracking-widest ${
             seatsLeft > 0 
-              ? 'text-emerald-700' 
-              : 'text-red-700'
+              ? 'text-pastel-mint-dark' 
+              : 'text-pastel-pink-dark'
           }`}>
-            {seatsLeft > 0 ? `${seatsLeft} Seat${seatsLeft !== 1 ? 's' : ''} left` : 'No seats available'}
+            {seatsLeft > 0 ? `${seatsLeft} ${seatsLeft !== 1 ? 'Spaces' : 'Space'}` : 'Full'}
           </span>
         </div>
-
-        <div className="flex items-center gap-1 text-indigo-600 text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
-          Book Now 
-          <ChevronRight size={16} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+ 
+        <div className="flex items-center gap-2 text-pastel-lavender-dark text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
+          Book <span className="hidden sm:inline">Now</span>
+          <div className="w-8 h-8 rounded-xl bg-pastel-lavender shadow-sm flex items-center justify-center text-white scale-75 group-hover:scale-100 transition-transform">
+            <ChevronRight size={16} strokeWidth={3} />
+          </div>
         </div>
       </div>
-
-      {/* Subtle Background Glow on Hover */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
 }

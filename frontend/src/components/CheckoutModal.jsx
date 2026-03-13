@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, CheckCircle, MapPin, Users, IndianRupee, Clock, Shield, Smartphone, TrendingUp } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, MapPin, Users, IndianRupee, Clock, Shield, Smartphone, TrendingUp, Navigation, Loader2 } from 'lucide-react';
 import bookingService from '../api/bookingService';
 
 export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
@@ -17,19 +17,16 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
     setError('');
 
     try {
-      // Book the ride without payment
       await bookingService.bookRide(ride._id, seatsToBook);
-      
       setSuccess(true);
 
-      // Call success callback after 2 seconds
       setTimeout(() => {
         onSuccess();
         onClose();
-      }, 2000);
+      }, 2500);
     } catch (err) {
       setError(
-        err.response?.data?.message || 'Booking failed. Please try again.'
+        err.response?.data?.message || 'Quantum mismatch during booking sync.'
       );
     } finally {
       setLoading(false);
@@ -39,139 +36,119 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
   if (!isOpen || !ride) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300'>
-      <div className='bg-white rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden animate-in scale-95 duration-300'>
+    <div className='fixed inset-0 bg-slate-900/40 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-in fade-in duration-500'>
+      <div className='bg-pastel-cream rounded-[3.5rem] shadow-2xl max-w-lg w-full mx-auto overflow-hidden animate-in zoom-in duration-300 border-4 border-white relative'>
         
+        {/* Animated Background Bloom */}
+        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-pastel-lavender-light/30 rounded-full blur-[80px] -z-10" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-pastel-mint-light/20 rounded-full blur-[60px] -z-10" />
+
         {!success ? (
-          <>
-            {/* Header with gradient background */}
-            <div className='bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-8 relative overflow-hidden'>
-              {/* Animated background elements */}
-              <div className='absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 animate-pulse'></div>
-              <div className='absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12 animate-pulse' style={{animationDelay: '0.5s'}}></div>
-              
+          <div className="relative">
+            {/* Header Section */}
+            <div className='px-10 py-12 relative overflow-hidden'>
               <div className='relative z-10'>
-                <h2 className='text-3xl font-black text-white tracking-tight'>Confirm Your Ride</h2>
-                <p className='text-blue-100 text-sm mt-2 flex items-center gap-1'>
-                  <Shield size={14} /> Secure booking with easy cancellation
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-white shadow-sm">
+                        <Navigation size={20} className="text-pastel-lavender-dark" />
+                    </div>
+                     <h2 className='text-3xl font-black text-slate-800 tracking-tight'>Confirm expedition</h2>
+                </div>
+                <p className='text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2'>
+                  <Shield size={14} className="text-pastel-mint-dark" strokeWidth={3} /> Protocol X-Security Active
                 </p>
               </div>
               
               <button
                 onClick={onClose}
                 disabled={loading}
-                className='absolute top-4 right-4 text-white/60 hover:text-white disabled:opacity-50 transition-colors p-2 hover:bg-white/10 rounded-xl'
+                className='absolute top-8 right-8 text-slate-400 hover:text-slate-800 disabled:opacity-30 transition-all p-3 bg-white/60 rounded-2xl shadow-sm border border-white hover:scale-110 active:scale-95'
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 
             {/* Body */}
-            <form onSubmit={handleBooking} className='p-8 space-y-6'>
+            <form onSubmit={handleBooking} className='px-10 pb-12 space-y-8'>
               
-              {/* Route Card with Map Visual */}
-              <div className='bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-6 border border-blue-100'>
-                <h3 className='font-bold text-slate-900 mb-4 text-sm uppercase tracking-widest text-slate-600'>Your Journey</h3>
-                <div className='space-y-3'>
-                  {/* From */}
-                  <div className='flex gap-4'>
-                    <div className='flex flex-col items-center'>
-                      <div className='w-4 h-4 bg-green-500 rounded-full ring-4 ring-green-100'></div>
-                      <div className='w-1 h-8 bg-gradient-to-b from-green-500 to-blue-500 my-1'></div>
+              {/* Route Blueprint */}
+              <div className='bg-white/40 backdrop-blur-md rounded-[2.5rem] p-8 border-2 border-white shadow-sm space-y-8'>
+                <div className='space-y-6'>
+                  <div className='flex gap-5'>
+                    <div className='flex flex-col items-center pt-2'>
+                      <div className='w-2.5 h-2.5 bg-slate-800 rounded-full'></div>
+                      <div className='w-[1.5px] flex-1 bg-gradient-to-b from-slate-200 to-pastel-lavender/50 my-1 rounded-full'></div>
                     </div>
-                    <div className='flex-1 pt-1'>
-                      <p className='text-xs font-bold text-slate-500 uppercase tracking-wide mb-1'>Pickup</p>
-                      <p className='font-semibold text-slate-900 text-sm line-clamp-2'>{ride.startLocation?.address || 'Start Location'}</p>
+                    <div className='flex-1'>
+                      <p className='text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1'>Origin Terminal</p>
+                      <p className='font-black text-slate-800 text-sm leading-snug truncate max-w-[200px]'>{ride.startLocation?.address || 'Terminal A'}</p>
                     </div>
                   </div>
                   
-                  {/* To */}
-                  <div className='flex gap-4'>
+                  <div className='flex gap-5'>
                     <div className='flex flex-col items-center'>
-                      <div className='w-4 h-4 bg-blue-600 rounded-full ring-4 ring-blue-100'></div>
+                      <MapPin size={24} className='text-pastel-lavender-dark' />
                     </div>
-                    <div className='flex-1 pt-1'>
-                      <p className='text-xs font-bold text-slate-500 uppercase tracking-wide mb-1'>Dropoff</p>
-                      <p className='font-semibold text-slate-900 text-sm line-clamp-2'>{ride.endLocation?.address || 'End Location'}</p>
+                    <div className='flex-1'>
+                      <p className='text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1'>Dropoff Objective</p>
+                      <p className='font-black text-slate-800 text-sm leading-snug truncate max-w-[200px]'>{ride.endLocation?.address || 'Terminal B'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Ride Details Grid */}
-              <div className='grid grid-cols-3 gap-4'>
-                <div className='bg-blue-50 rounded-xl p-4 text-center border border-blue-100'>
-                  <Users className='w-5 h-5 text-blue-600 mx-auto mb-2' />
-                  <p className='text-xs text-slate-600 font-semibold uppercase mb-1'>Seats</p>
-                  <p className='text-2xl font-black text-blue-600'>{seatsToBook}</p>
+              {/* Resource Consumption Grid */}
+              <div className='grid grid-cols-3 gap-6'>
+                <div className='bg-white/60 border-2 border-white rounded-[2rem] p-5 text-center shadow-sm'>
+                  <Users className='w-4 h-4 text-pastel-lavender-dark mx-auto mb-2' />
+                  <p className='text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2'>Capacity</p>
+                  <p className='text-xl font-black text-slate-800 tracking-tighter'>{seatsToBook}</p>
                 </div>
-                <div className='bg-amber-50 rounded-xl p-4 text-center border border-amber-100'>
-                  <IndianRupee className='w-5 h-5 text-amber-600 mx-auto mb-2' />
-                  <p className='text-xs text-slate-600 font-semibold uppercase mb-1'>Per Seat</p>
-                  <p className='text-2xl font-black text-amber-600'>₹{pricePerSeat}</p>
+                <div className='bg-white/60 border-2 border-white rounded-[2rem] p-5 text-center shadow-sm'>
+                   <IndianRupee className='w-4 h-4 text-pastel-peach-dark mx-auto mb-2' />
+                  <p className='text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2'>Rate</p>
+                  <p className='text-xl font-black text-slate-800 tracking-tighter'>₹{pricePerSeat}</p>
                 </div>
-                <div className='bg-green-50 rounded-xl p-4 text-center border border-green-100'>
-                  <TrendingUp className='w-5 h-5 text-green-600 mx-auto mb-2' />
-                  <p className='text-xs text-slate-600 font-semibold uppercase mb-1'>Total</p>
-                  <p className='text-2xl font-black text-green-600'>₹{totalAmount}</p>
+                <div className='bg-white/60 border-2 border-white rounded-[2rem] p-5 text-center shadow-sm'>
+                  <TrendingUp className='w-4 h-4 text-pastel-mint-dark mx-auto mb-2' />
+                  <p className='text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2'>Total</p>
+                  <p className='text-xl font-black text-slate-800 tracking-tighter'>₹{totalAmount}</p>
                 </div>
               </div>
 
-              {/* Payment Info Card */}
-              <div className='bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-200 space-y-3'>
-                <div className='flex items-start gap-3'>
-                  <Smartphone className='w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0' />
+              {/* Economic Disclosure */}
+              <div className='bg-gradient-to-r from-pastel-lavender-light/30 to-pastel-mint-light/30 rounded-[2rem] p-6 border-2 border-white flex items-start gap-4 shadow-inner'>
+                   <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-white shrink-0 shadow-sm">
+                        <IndianRupee size={18} className="text-pastel-lavender-dark" />
+                   </div>
                   <div>
-                    <p className='font-bold text-indigo-900 text-sm'>Pay After Ride</p>
-                    <p className='text-xs text-indigo-700 mt-1'>You'll pay the driver ₹{totalAmount} via UPI after both of you confirm the ride is completed. No upfront payment required!</p>
+                    <p className='font-black text-slate-800 text-xs uppercase tracking-widest'>Deferred Settlement</p>
+                    <p className='text-[10px] text-slate-500 font-medium mt-1 leading-relaxed italic'>Pay the operator ₹{totalAmount} via direct quantum link (UPI) post-arrival.</p>
                   </div>
-                </div>
               </div>
 
-              {/* Safety Info */}
-              <div className='bg-emerald-50 rounded-2xl p-4 border border-emerald-200 flex items-start gap-3'>
-                <Shield className='w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0' />
-                <div>
-                  <p className='font-bold text-emerald-900 text-xs uppercase tracking-widest'>Safe & Secure</p>
-                  <p className='text-xs text-emerald-700 mt-1'>Share your ride with verified drivers. Cancel anytime before driver accepts.</p>
-                </div>
-              </div>
-
-              {/* Error Alert */}
+              {/* Error Protocol */}
               {error && (
-                <div className='p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-3 animate-shake'>
-                  <AlertCircle size={20} className='text-red-600 flex-shrink-0 mt-0.5' />
-                  <div>
-                    <p className='text-sm font-bold text-red-900'>Booking Failed</p>
-                    <p className='text-xs text-red-700 mt-1'>{error}</p>
-                  </div>
+                <div className='p-5 bg-pastel-pink/30 border border-pastel-pink rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2'>
+                  <AlertCircle size={20} className='text-red-700 flex-shrink-0' />
+                  <p className='text-[10px] font-black text-red-900 uppercase tracking-widest leading-relaxed'>{error}</p>
                 </div>
               )}
 
-              {/* Loading State */}
-              {loading && (
-                <div className='p-4 bg-blue-50 rounded-xl border border-blue-200 flex items-center gap-3'>
-                  <div className='animate-spin rounded-full h-5 w-5 border-2 border-blue-300 border-t-blue-600'></div>
-                  <p className='text-sm font-semibold text-blue-700'>Confirming your booking...</p>
-                </div>
-              )}
-
-              {/* Buttons */}
-              <div className='space-y-3 pt-4'>
+              {/* Action Matrix */}
+              <div className='space-y-4 pt-4'>
                 <button
                   type='submit'
                   disabled={loading}
-                  className='w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-blue-200'
+                  className='w-full bg-slate-800 text-white font-black text-[10px] uppercase tracking-[0.3em] py-6 px-10 rounded-[2.5rem] hover:bg-slate-900 transition-all shadow-xl active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-4 group/btn overflow-hidden relative'
                 >
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-white/10 group-hover:h-full transition-all duration-700" />
                   {loading ? (
-                    <>
-                      <div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'></div>
-                      Booking...
-                    </>
+                    <Loader2 size={18} className='animate-spin relative z-10' />
                   ) : (
                     <>
-                      <CheckCircle size={20} />
-                      Confirm Booking for ₹{totalAmount}
+                      <CheckCircle size={18} strokeWidth={3} className="relative z-10" />
+                      <span className="relative z-10">Sync Reservation • ₹{totalAmount}</span>
                     </>
                   )}
                 </button>
@@ -179,87 +156,47 @@ export default function CheckoutModal({ isOpen, ride, onClose, onSuccess }) {
                   type='button'
                   onClick={onClose}
                   disabled={loading}
-                  className='w-full bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-900 font-semibold py-3 px-6 rounded-xl transition duration-200'
+                  className='w-full bg-white text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] py-4 px-10 rounded-[2rem] border border-white hover:bg-slate-50 hover:text-slate-600 transition-all'
                 >
-                  Cancel
+                  Withdraw
                 </button>
               </div>
-
-              <p className='text-xs text-slate-500 text-center'>
-                By confirming, you agree to our Terms of Service and cancellation policy
-              </p>
             </form>
-          </>
+          </div>
         ) : (
-          /* Success State - Immersive Celebration */
-          <div className='bg-gradient-to-b from-green-50 to-emerald-50 p-8 text-center space-y-4 min-h-96 flex flex-col items-center justify-center relative overflow-hidden'>
+          /* Quantum Success State */
+          <div className='p-12 text-center min-h-[500px] flex flex-col items-center justify-center relative bg-gradient-to-b from-white to-pastel-cream'>
             
-            {/* Confetti animation background */}
-            <div className='absolute top-0 left-0 w-full h-full pointer-events-none'>
-              {[...Array(12)].map((_, i) => (
-                <div
-                  key={i}
-                  className='absolute bg-green-400 rounded-full animate-bounce'
-                  style={{
-                    width: Math.random() * 8 + 2 + 'px',
-                    height: Math.random() * 8 + 2 + 'px',
-                    left: Math.random() * 100 + '%',
-                    top: -10 + 'px',
-                    animationDelay: Math.random() * 0.5 + 's',
-                    animation: `float-down ${Math.random() * 3 + 2}s linear infinite`,
-                  }}
-                />
-              ))}
-            </div>
+             <div className="absolute inset-0 flex items-center justify-center -z-10 overflow-hidden">
+                <div className="w-[80%] h-[80%] bg-pastel-mint-light/40 rounded-full blur-[100px] animate-pulse" />
+             </div>
 
-            <div className='relative z-10'>
-              <div className='bg-green-100 p-6 rounded-full inline-block mb-6 animate-bounce'>
-                <CheckCircle size={72} className='text-green-600' />
+            <div className='relative z-10 space-y-8 max-w-sm'>
+              <div className='w-24 h-24 bg-white p-6 rounded-[2rem] inline-block shadow-2xl border-4 border-pastel-mint-light animate-bounce'>
+                <CheckCircle size={48} className='text-pastel-mint-dark' strokeWidth={3} />
               </div>
               
-              <h3 className='text-3xl font-black text-green-900 mb-2'>Ride Booked! 🎉</h3>
+              <div>
+                <h3 className='text-4xl font-black text-slate-800 tracking-tighter mb-2'>Expedition Logged</h3>
+                <p className='text-pastel-mint-dark text-[10px] font-black uppercase tracking-[0.4em]'>Synchronization Absolute</p>
+              </div>
               
-              <p className='text-green-700 font-semibold mb-4'>Your ride has been confirmed</p>
-              
-              <div className='bg-white rounded-2xl p-6 space-y-3 mb-6 border-2 border-green-200 shadow-lg'>
-                <div className='text-left space-y-3'>
-                  <div className='flex items-center gap-3 text-sm'>
-                    <CheckCircle size={18} className='text-green-600' />
-                    <span className='text-slate-700'>Booking ID: <span className='font-bold'>#BK{Math.random().toString(36).substr(2, 9).toUpperCase()}</span></span>
-                  </div>
-                  <div className='flex items-center gap-3 text-sm'>
-                    <IndianRupee size={18} className='text-green-600' />
-                    <span className='text-slate-700'>Pay on completion: <span className='font-bold'>₹{totalAmount}</span></span>
-                  </div>
-                  <div className='flex items-center gap-3 text-sm'>
-                    <MapPin size={18} className='text-green-600' />
-                    <span className='text-slate-700'>Trip ready for pickup</span>
-                  </div>
-                </div>
+              <div className='bg-white/60 backdrop-blur-md rounded-[2.5rem] p-8 space-y-4 border-2 border-white shadow-xl'>
+                 <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-400 pb-2 border-b border-pastel-mint/10">
+                    <span>Node ID</span>
+                    <span className="text-slate-800">#BK{Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
+                 </div>
+                 <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    <span>Rate Link</span>
+                    <span className="text-slate-800">₹{totalAmount}</span>
+                 </div>
               </div>
 
-              <p className='text-sm text-green-700 mb-6 leading-relaxed'>
-                Check your bookings page to see driver details and track your ride in real-time
-              </p>
-
-              <div className='text-xs text-green-600 font-semibold animate-pulse'>
-                ✓ Redirecting to your bookings in a moment...
+              <div className='text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse mt-8 flex items-center justify-center gap-3'>
+                 <div className="w-1.5 h-1.5 bg-pastel-lavender rounded-full animate-ping" />
+                 Redirection to command hub...
               </div>
             </div>
-
-            <style>{`
-              @keyframes float-down {
-                to {
-                  transform: translateY(400px);
-                  opacity: 0;
-                }
-              }
-              @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-10px); }
-                75% { transform: translateX(10px); }
-              }
-            `}</style>
           </div>
         )}
       </div>

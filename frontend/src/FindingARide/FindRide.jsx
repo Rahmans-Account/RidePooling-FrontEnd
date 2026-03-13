@@ -32,11 +32,6 @@ export default function FindRide() {
     loadAllAvailableRides();
   }, []);
 
-  // MARKETPLACE MODEL: Load all available rides on component mount
-  React.useEffect(() => {
-    loadAllAvailableRides();
-  }, []);
-
   const loadAllAvailableRides = async () => {
     try {
       setLoading(true);
@@ -68,6 +63,9 @@ export default function FindRide() {
       // Add filters only if provided (optional, not required)
       if (currentLocation) {
         params.startLocation = currentLocation.name;
+        params.latitude = currentLocation.lat;
+        params.longitude = currentLocation.lng;
+        params.maxDistanceKm = 25;
       }
       if (date) {
         params.departureDate = date;
@@ -100,49 +98,49 @@ export default function FindRide() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-[Poppins] selection:bg-indigo-100">
+    <div className="min-h-screen bg-pastel-cream font-[Poppins] selection:bg-pastel-lavender-light/50 relative overflow-x-hidden">
       {/* Background Accents */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-[120px] -z-10" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[120px] -z-10" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-pastel-lavender-light/30 rounded-full blur-[120px] -z-10 animate-pulse-slow" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-pastel-mint-light/30 rounded-full blur-[120px] -z-10 animate-pulse-slow-reverse" />
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-16">
         {/* Header Section */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
           <button
             onClick={() => navigate("/dashboard")}
-            className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-semibold"
+            className="group flex items-center gap-3 text-slate-500 hover:text-slate-900 transition-all font-black uppercase tracking-widest text-[10px]"
           >
-            <div className="p-2 rounded-xl bg-white shadow-sm border border-slate-100 group-hover:shadow-md transition-all">
+            <div className="p-3 rounded-2xl bg-white/70 backdrop-blur-md shadow-sm border border-slate-200/70 group-hover:shadow-md group-hover:-translate-x-1 transition-all">
               <ArrowLeft size={18} />
             </div>
             Back to Dashboard
           </button>
-
-          <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-2xl shadow-sm">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Network Active</span>
+ 
+          <div className="flex items-center gap-4 px-6 py-3 bg-white/70 backdrop-blur-md border border-slate-200/70 rounded-[2rem] shadow-sm">
+             <div className="w-2.5 h-2.5 rounded-full bg-pastel-mint-dark animate-pulse shadow-[0_0_10px_#A8E6CF]" />
+             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Pastel Network Encryption Active</span>
           </div>
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            Find Your Next Journey
+        <div className="text-center mb-16 max-w-2xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tighter mb-6 leading-tight">
+            Discover Your <span className="text-pastel-lavender-dark">Perfect</span> Ride
           </h1>
-          <p className="text-slate-500 max-w-xl mx-auto font-medium">
-            Search for verified rides heading your way. Simple, secure, and sustainable travel.
+          <p className="text-slate-500 text-lg font-medium">
+            Search for cute, verified rides heading your way. Simple, dreamy, and sustainable travel.
           </p>
         </div>
 
         {/* Search Command Hub */}
-        <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-white p-4 md:p-6 mb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[3.5rem] shadow-pastel-shadow border border-slate-200/70 p-6 md:p-8 mb-20 ring-1 ring-slate-100/70">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             {/* Location Input */}
             <div className="lg:col-span-5 relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 group-focus-within:text-indigo-600">
-                <MapPin size={20} />
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 z-10 group-focus-within:text-pastel-lavender-dark transition-colors">
+                <MapPin size={24} strokeWidth={3} />
               </div>
-              <div className="pl-6">
+              <div className="pl-10">
                 <AutoCompleteLocation
                   label="Pickup Area"
                   onSelect={(loc) => setCurrentLocation({
@@ -155,13 +153,13 @@ export default function FindRide() {
             </div>
 
             {/* Date Input */}
-            <div className="lg:col-span-3 relative px-4 lg:border-l lg:border-slate-100">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Departure Date</label>
-              <div className="flex items-center gap-3">
-                <Calendar size={18} className="text-slate-400" />
+            <div className="lg:col-span-3 relative px-6 lg:border-l-2 lg:border-dashed lg:border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Departure Date</label>
+              <div className="flex items-center gap-4 group">
+                <Calendar size={22} className="text-slate-300 group-focus-within:text-pastel-lavender-dark transition-colors" strokeWidth={3} />
                 <input
                   type="date"
-                  className="w-full bg-transparent outline-none font-bold text-slate-900"
+                  className="w-full bg-transparent outline-none font-black text-slate-800 placeholder:text-slate-300"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
@@ -169,75 +167,78 @@ export default function FindRide() {
             </div>
 
             {/* Seats Input */}
-            <div className="lg:col-span-2 relative px-4 lg:border-l lg:border-slate-100">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Seats</label>
-              <div className="flex items-center gap-3">
-                <Users size={18} className="text-slate-400" />
+            <div className="lg:col-span-2 relative px-6 lg:border-l-2 lg:border-dashed lg:border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Seats</label>
+              <div className="flex items-center gap-4 group">
+                <Users size={22} className="text-slate-300 group-focus-within:text-pastel-lavender-dark transition-colors" strokeWidth={3} />
                 <input
                   type="number"
                   min="1"
-                  className="w-full bg-transparent outline-none font-bold text-slate-900"
+                  className="w-full bg-transparent outline-none font-black text-slate-800 tabular-nums"
                   value={minSeats}
                   onChange={(e) => setMinSeats(Math.max(1, Number(e.target.value)))}
                 />
               </div>
             </div>
-
+ 
             {/* Action Buttons */}
-            <div className="lg:col-span-2 flex items-center gap-2">
+            <div className="lg:col-span-2 flex items-center gap-3">
               <button
                 onClick={findRides}
                 disabled={loading}
-                className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-70"
+                className="flex-1 bg-slate-800 text-white py-5 rounded-3xl font-black flex items-center justify-center gap-3 hover:bg-slate-900 shadow-xl shadow-slate-200 transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-70 group"
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-                Search
+                {loading ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : <Search size={22} strokeWidth={3} className="group-hover:scale-110 transition-transform" />}
+                <span className="text-sm">Explore</span>
               </button>
               <button
                 onClick={handleRefresh}
-                className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-rose-500 transition-all"
+                className="p-5 bg-white shadow-inner border border-slate-200/70 text-slate-300 rounded-3xl hover:text-pastel-pink-dark transition-all hover:scale-110 active:scale-90"
                 title="Reset Search"
               >
-                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                <RefreshCw size={20} strokeWidth={3} className={loading ? "animate-spin" : ""} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Results Section */}
-        <div className="mt-10">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-              <Sparkles className="text-amber-400" /> 
-              {hasSearched ? `Available Rides (${rides.length})` : "Recommended Rides"}
+        <div className="mt-20">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-12">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-4">
+              <div className="p-3 bg-white rounded-2xl shadow-sm border border-white">
+                <Sparkles className="text-pastel-peach-dark" size={24} /> 
+              </div>
+              {hasSearched ? `Network Results (${rides.length})` : "Featured Journeys"}
             </h2>
             {rides.length > 0 && (
-               <div className="flex items-center gap-2 text-sm font-bold text-indigo-600">
-                 Sorted by Date <ChevronRight size={14} />
+               <div className="flex items-center gap-3 px-4 py-2 bg-pastel-lavender/10 border border-pastel-lavender/20 rounded-xl text-[10px] font-black text-pastel-lavender-dark uppercase tracking-widest">
+                 Chronological Order <ChevronRight size={14} strokeWidth={3} />
                </div>
             )}
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-64 bg-white border border-slate-100 rounded-[2.5rem] animate-pulse" />
+                <div key={n} className="h-72 bg-white/70 border border-slate-200/70 rounded-[3rem] animate-pulse" />
               ))}
             </div>
           ) : rides.length === 0 ? (
-            <div className="bg-white rounded-[3rem] py-20 px-6 text-center border border-dashed border-slate-200">
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-6">
-                <MapIcon size={48} />
+            <div className="bg-white/80 backdrop-blur-xl rounded-[4rem] py-32 px-10 text-center border border-slate-200/70 shadow-pastel-shadow relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="w-32 h-32 bg-white rounded-[2.5rem] shadow-inner flex items-center justify-center text-slate-200 mx-auto mb-10 group-hover:scale-110 transition-transform duration-700">
+                <MapIcon size={56} strokeWidth={1} />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">
-                {hasSearched ? "No rides found for this date" : "Start your search"}
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+                {hasSearched ? "The Horizon is Quiet" : "Begin Your Exploration"}
               </h3>
-              <p className="text-slate-500 mt-2 max-w-xs mx-auto font-medium">
-                Try adjusting your location or selecting a different date to find available commutes.
+              <p className="text-slate-500 mt-4 max-w-sm mx-auto font-medium leading-relaxed">
+                Adjust your destination or try a different date to uncover hidden journeys in the pastel network.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
               {rides.map((ride) => (
                 <RideCard key={ride._id} ride={ride} />
               ))}

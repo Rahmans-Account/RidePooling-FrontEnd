@@ -33,6 +33,9 @@ const rideService = {
       if (filters.departureDate) params.append('departureDate', filters.departureDate);
       if (filters.minSeats) params.append('minSeats', filters.minSeats);
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.latitude) params.append('latitude', filters.latitude);
+      if (filters.longitude) params.append('longitude', filters.longitude);
+      if (filters.maxDistanceKm) params.append('maxDistanceKm', filters.maxDistanceKm);
       params.append('status', 'active');
 
       const response = await api.get(`/rides?${params.toString()}`);
@@ -111,6 +114,9 @@ const rideService = {
       if (filters.departureDate) params.append('departureDate', filters.departureDate);
       if (filters.minSeats) params.append('minSeats', filters.minSeats);
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.latitude) params.append('latitude', filters.latitude);
+      if (filters.longitude) params.append('longitude', filters.longitude);
+      if (filters.maxDistanceKm) params.append('maxDistanceKm', filters.maxDistanceKm);
 
       const response = await api.get(`/rides/search?${params.toString()}`);
       return response.data;

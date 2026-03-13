@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowUpCircle, ArrowDownCircle, Wallet, IndianRupee, Calendar, User } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Wallet, IndianRupee, Calendar, User, RefreshCw, Loader2, AlertCircle } from "lucide-react";
 import walletService from "../api/walletService";
 
 export default function PaymentHistoryPage() {
@@ -7,7 +7,7 @@ export default function PaymentHistoryPage() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, credit, debit
+  const [filter, setFilter] = useState('all'); 
 
   useEffect(() => {
     fetchWalletData();
@@ -50,165 +50,176 @@ export default function PaymentHistoryPage() {
     });
   };
 
-  const getTransactionIcon = (type) => {
-    return type === 'credit' 
-      ? <ArrowDownCircle className="text-green-600" size={24} />
-      : <ArrowUpCircle className="text-red-600" size={24} />;
-  };
-
   const getTransactionColor = (type) => {
     return type === 'credit' 
-      ? 'text-green-600' 
-      : 'text-red-600';
+      ? 'text-pastel-mint-dark' 
+      : 'text-pastel-pink-dark';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-pastel-cream p-4">
+        <div className="text-center space-y-4">
+          <Loader2 className="animate-spin text-pastel-lavender-dark mx-auto" size={40} strokeWidth={3} />
+          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs">Syncing Economy...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black text-slate-900 mb-2">Payment History</h1>
-          <p className="text-slate-600">Track your earnings and spending</p>
-        </div>
+    <div className="min-h-screen bg-pastel-cream p-4 md:p-8 font-[Poppins] relative overflow-x-hidden pb-20">
+      {/* Background Blooms */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+        <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] bg-pastel-peach-light/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pastel-mint-light/30 rounded-full blur-[100px]" />
+      </div>
 
-        {/* Wallet Balance Card */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-3xl p-8 text-white mb-8 shadow-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <Wallet size={32} />
-            <h2 className="text-2xl font-bold">Wallet Balance</h2>
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight">Financial Flow</h1>
+            <p className="text-slate-500 mt-2 font-medium italic pr-4">Documenting your economic odyssey within the pastel grid</p>
           </div>
-          <div className="flex items-center gap-2">
-            <IndianRupee size={40} />
-            <span className="text-6xl font-black">{wallet?.balance?.toFixed(2) || '0.00'}</span>
+          
+          <div className="flex flex-wrap gap-3">
+            {[ 
+              { id: 'all', label: 'Universal', icon: RefreshCw },
+              { id: 'credit', label: 'Yields', icon: ArrowDownCircle },
+              { id: 'debit', label: 'Outflow', icon: ArrowUpCircle }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-3 border ${
+                  filter === tab.id
+                    ? 'bg-slate-800 text-white border-slate-700 shadow-xl'
+                    : 'bg-white text-slate-400 hover:text-slate-600 border-white'
+                }`}
+              >
+                <tab.icon size={16} strokeWidth={3} /> {tab.label}
+              </button>
+            ))}
           </div>
-          <p className="mt-4 text-indigo-100">Available for rides and withdrawals</p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-              filter === 'all'
-                ? 'bg-slate-900 text-white shadow-lg'
-                : 'bg-white text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            All Transactions
-          </button>
-          <button
-            onClick={() => setFilter('credit')}
-            className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-              filter === 'credit'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-white text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            Earnings
-          </button>
-          <button
-            onClick={() => setFilter('debit')}
-            className={`px-6 py-3 rounded-2xl font-bold transition-all ${
-              filter === 'debit'
-                ? 'bg-red-600 text-white shadow-lg'
-                : 'bg-white text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            Payments
-          </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-2 bg-gradient-to-br from-pastel-lavender-dark to-pastel-lavender rounded-[3rem] p-10 md:p-14 text-slate-800 shadow-xl shadow-pastel-lavender/20 border-4 border-white relative overflow-hidden group">
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/20 rounded-full -mr-32 -mb-32 group-hover:scale-110 transition-transform duration-700" />
+            <div className="relative z-10 space-y-8">
+              <div className="flex items-center gap-3 opacity-60">
+                <Wallet size={32} strokeWidth={2.5} />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.5em]">Quantum Liquidity</h2>
+              </div>
+              <div className="flex items-baseline gap-4">
+                <span className="text-3xl font-black opacity-40 tabular-nums uppercase">₹</span>
+                <span className="text-6xl md:text-8xl font-black tracking-tighter tabular-nums drop-shadow-md">
+                  {wallet?.balance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="pt-4 flex flex-wrap gap-6">
+                <div className="px-5 py-2.5 bg-white/30 backdrop-blur-md rounded-2xl border border-white/40 text-[9px] font-black uppercase tracking-widest">
+                  Verified Assets
+                </div>
+                <div className="px-5 py-2.5 bg-pastel-mint/40 backdrop-blur-md rounded-2xl border border-white/40 text-[9px] font-black uppercase tracking-widest text-slate-800">
+                  Ready for Pulse
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 grid gap-6">
+            <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-8 border-2 border-white shadow-pastel-shadow">
+              <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Total Accrued</h3>
+              <div className="flex items-baseline gap-2 text-pastel-mint-dark">
+                <span className="text-3xl font-black tabular-nums">₹</span>
+                <span className="text-4xl font-black tracking-tighter">
+                  {transactions
+                    .filter(t => t.type === 'credit')
+                    .reduce((sum, t) => sum + (t.amount || 0), 0)
+                    .toLocaleString()}
+                </span>
+              </div>
+            </div>
+            <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-8 border-2 border-white shadow-pastel-shadow">
+              <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Total Expended</h3>
+              <div className="flex items-baseline gap-2 text-pastel-pink-dark">
+                <span className="text-3xl font-black tabular-nums text-pastel-pink-dark">₹</span>
+                <span className="text-4xl font-black tracking-tighter">
+                  {transactions
+                    .filter(t => t.type === 'debit')
+                    .reduce((sum, t) => sum + (t.amount || 0), 0)
+                    .toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Transaction List */}
-        <div className="bg-white rounded-3xl shadow-lg p-6">
+        <div className="glass-morphism rounded-[3rem] p-6 md:p-12 shadow-pastel-shadow border-white relative overflow-hidden">
+          <div className="flex items-center justify-between mb-10 pb-6 border-b border-pastel-lavender/10">
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">Transaction Ledger</h3>
+            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-white/50 px-4 py-2 rounded-full border border-white">
+              {transactions.length} Nodes
+            </div>
+          </div>
+
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-4">
-              {error}
+            <div className="bg-pastel-pink/30 border border-pastel-pink p-4 rounded-2xl mb-8 flex items-center gap-3 text-red-800 text-xs font-bold uppercase tracking-widest">
+              <AlertCircle size={18} /> {error}
             </div>
           )}
 
           {transactions.length === 0 ? (
-            <div className="text-center py-16">
-              <Wallet size={64} className="mx-auto text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold text-slate-900 mb-2">No Transactions Yet</h3>
-              <p className="text-slate-500">
-                Your transaction history will appear here once you complete rides
-              </p>
+            <div className="text-center py-20 bg-white/20 rounded-[2rem] border-2 border-dashed border-white">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-300 mx-auto mb-6 shadow-inner">
+                <Wallet size={32} strokeWidth={1.5} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800">Static Ledger</h3>
+              <p className="text-slate-500 text-xs font-medium mt-2">Zero fiscal activity detected in this cycle</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {transactions.map((transaction, index) => (
                 <div
                   key={transaction._id || index}
-                  className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 p-6 md:p-8 bg-white/40 border-2 border-white rounded-[2.5rem] hover:bg-white hover:shadow-md transition-all group/node"
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="p-3 bg-white rounded-xl shadow-sm">
-                      {getTransactionIcon(transaction.type)}
+                  <div className="flex items-center gap-6 flex-1">
+                    <div className={`p-4 rounded-2xl shadow-inner border border-white shadow-sm transition-transform duration-500 group-hover/node:scale-110 ${
+                      transaction.type === 'credit' ? 'bg-pastel-mint-light/40 text-pastel-mint-dark' : 'bg-pastel-pink-light/40 text-pastel-pink-dark'
+                    }`}>
+                      {transaction.type === 'credit' ? <ArrowDownCircle size={28} strokeWidth={2.5} /> : <ArrowUpCircle size={28} strokeWidth={2.5} />}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 mb-1">
+                    <div className="flex-1 space-y-2">
+                      <h4 className="font-black text-slate-800 text-lg tracking-tight group-hover/node:text-pastel-lavender-dark transition-colors">
                         {transaction.description}
                       </h4>
-                      <div className="flex items-center gap-4 text-sm text-slate-500">
-                        <div className="flex items-center gap-1">
-                          <Calendar size={14} />
+                      <div className="flex flex-wrap items-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-xl border border-white">
+                          <Calendar size={12} className="text-pastel-lavender-dark" />
                           {formatDate(transaction.transactionDate)}
                         </div>
                         {transaction.relatedUserId && (
-                          <div className="flex items-center gap-1">
-                            <User size={14} />
-                            {transaction.relatedUserId.name || 'User'}
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-xl border border-white">
+                            <User size={12} className="text-pastel-mint-dark" />
+                            {transaction.relatedUserId.name || 'External User'}
                           </div>
                         )}
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-xl border border-white">
+                           <span className="text-slate-300">Hash</span> #{(transaction._id || '').slice(-8)}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className={`text-2xl font-black ${getTransactionColor(transaction.type)}`}>
-                    {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount?.toFixed(2)}
+                  <div className={`text-2xl md:text-4xl font-black transition-all tabular-nums ${getTransactionColor(transaction.type)}`}>
+                    {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-
-        {/* Summary Stats */}
-        {transactions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <div className="bg-green-50 rounded-3xl p-6 border-2 border-green-200">
-              <h3 className="text-green-800 font-bold mb-2">Total Earnings</h3>
-              <div className="flex items-center gap-2 text-green-600">
-                <IndianRupee size={32} />
-                <span className="text-4xl font-black">
-                  {transactions
-                    .filter(t => t.type === 'credit')
-                    .reduce((sum, t) => sum + (t.amount || 0), 0)
-                    .toFixed(2)}
-                </span>
-              </div>
-            </div>
-            <div className="bg-red-50 rounded-3xl p-6 border-2 border-red-200">
-              <h3 className="text-red-800 font-bold mb-2">Total Spending</h3>
-              <div className="flex items-center gap-2 text-red-600">
-                <IndianRupee size={32} />
-                <span className="text-4xl font-black">
-                  {transactions
-                    .filter(t => t.type === 'debit')
-                    .reduce((sum, t) => sum + (t.amount || 0), 0)
-                    .toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

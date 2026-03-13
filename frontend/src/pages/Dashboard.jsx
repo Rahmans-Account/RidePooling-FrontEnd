@@ -40,31 +40,35 @@ export default function Dashboard() {
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!authService.isAuthenticated()) return;
-      
+
       const currentUser = authService.getCurrentUser();
       if (!currentUser?._id) return;
-      
+
       setLoading(true);
       try {
-        const [ridesRes, bookingsRes, paymentsRes] = await Promise.all([
+        const [ridesResult, bookingsResult, paymentsResult] = await Promise.allSettled([
           rideService.getMyRides(),
           bookingService.getMyBookings(),
           paymentService.getPaymentHistory("passenger"),
         ]);
 
+        const ridesRes = ridesResult.status === "fulfilled" ? ridesResult.value : null;
+        const bookingsRes = bookingsResult.status === "fulfilled" ? bookingsResult.value : null;
+        const paymentsRes = paymentsResult.status === "fulfilled" ? paymentsResult.value : null;
+
         // Validate that rides belong to current user (driver)
         const userRides = (ridesRes?.data?.rides || []).filter(
           (ride) => ride.driver?._id === currentUser._id || ride.driver === currentUser._id
         );
-        
+
         // Validate that bookings belong to current user (passenger)
         const userBookings = (bookingsRes?.data?.bookings || []).filter(
           (booking) => booking.driver?._id !== currentUser._id
         );
 
-        setStats({ 
-          totalRides: userRides.length, 
-          totalBookings: userBookings.length 
+        setStats({
+          totalRides: userRides.length,
+          totalBookings: userBookings.length
         });
 
         const payments = paymentsRes?.data?.data || [];
@@ -80,6 +84,14 @@ export default function Dashboard() {
           return { title, date, amount, type: "book" };
         });
         setRecentActivities(normalized);
+
+        if (ridesResult.status === "rejected" || bookingsResult.status === "rejected") {
+          notify.error("Could not fully refresh dashboard stats");
+        }
+
+        if (paymentsResult.status === "rejected") {
+          setRecentActivities([]);
+        }
       } catch (err) {
         console.error("Dashboard data load failed", err);
         notify.error("Could not refresh dashboard data");
@@ -92,42 +104,47 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-10 font-[Poppins]">
+    <div className="min-h-screen bg-pastel-cream p-4 md:p-6 lg:p-10 font-[Poppins] selection:bg-pastel-mint-light selection:text-pastel-mint-dark">
       <div className="max-w-6xl mx-auto">
-        {/* Header Section - Clean & Minimal */}
-        <header className="mb-12 flex items-center justify-between">
+        {/* Header Section */}
+        <header className="mb-10 md:mb-16 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight">
               Hey, {displayName}! 👋
             </h1>
-            <p className="text-slate-500 mt-2 font-medium">
-              Ready for your next shared journey?
+            <p className="text-slate-500 mt-3 text-lg font-medium">
+              Ready for your next dreamy shared journey?
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/70 border border-slate-200/70 flex items-center justify-center text-pastel-mint-dark shadow-sm">
+              <Zap size={24} fill="currentColor" />
+            </div>
           </div>
         </header>
 
         {/* Primary Action Cards - THE FOCUS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 mb-10 md:mb-12">
           {/* Offer a Ride */}
           <div
             onClick={() => navigate("/offer-ride")}
-            className="group relative overflow-hidden rounded-[3rem] bg-slate-900 h-[400px] cursor-pointer shadow-2xl transition-all hover:-translate-y-2"
+            className="group relative overflow-hidden rounded-4xl md:rounded-[3.5rem] bg-gradient-to-br from-pastel-mint-dark to-pastel-mint h-[340px] md:h-[420px] cursor-pointer shadow-pastel-shadow hover:shadow-2xl transition-all hover:-translate-y-2 border-4 border-slate-100"
           >
             <img
               src="https://images.unsplash.com/photo-1449960232330-79ba99d70d91?auto=format&fit=crop&q=80&w=800"
               alt="Offer"
-              className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000"
+              className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-110 transition-transform duration-1000 grayscale"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-10 w-full">
-              <h2 className="text-3xl font-black text-white mb-3">
+            <div className="absolute inset-0 bg-gradient-to-t from-pastel-mint-dark/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">
                 Offer a Ride
               </h2>
-              <p className="text-slate-300 mb-6 max-w-xs font-medium">
-                Earn while you drive and help reduce urban traffic.
+              <p className="text-slate-700 mb-8 max-w-xs font-bold text-sm leading-relaxed">
+                Earn while you drive and help reduce urban traffic waste.
               </p>
-              <div className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-2xl font-bold group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                Offer Now <Plus size={20} />
+              <div className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-800 rounded-2xl font-black shadow-lg shadow-black/5 group-hover:bg-slate-800 group-hover:text-white transition-all">
+                Offer Now <Plus size={22} strokeWidth={3} />
               </div>
             </div>
           </div>
@@ -135,37 +152,37 @@ export default function Dashboard() {
           {/* Find a Ride */}
           <div
             onClick={() => navigate("/find-ride")}
-            className="group relative overflow-hidden rounded-[3rem] bg-indigo-600 h-[400px] cursor-pointer shadow-2xl transition-all hover:-translate-y-2"
+            className="group relative overflow-hidden rounded-4xl md:rounded-[3.5rem] bg-gradient-to-br from-pastel-lavender-dark to-pastel-lavender h-[340px] md:h-[420px] cursor-pointer shadow-pastel-shadow hover:shadow-2xl transition-all hover:-translate-y-2 border-4 border-slate-100"
           >
             <img
               src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800"
               alt="Find"
-              className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000"
+              className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-110 transition-transform duration-1000 grayscale"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-indigo-900 via-indigo-900/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-10 w-full">
-              <h2 className="text-3xl font-black text-white mb-3">
+            <div className="absolute inset-0 bg-gradient-to-t from-pastel-lavender-dark/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">
                 Find a Ride
               </h2>
-              <p className="text-indigo-100 mb-6 max-w-xs font-medium">
+              <p className="text-slate-700 mb-8 max-w-xs font-bold text-sm leading-relaxed">
                 Travel affordably with verified commuters heading your way.
               </p>
-              <div className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl font-bold group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                Search Rides <Search size={20} />
+              <div className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-800 rounded-2xl font-black shadow-lg shadow-black/5 group-hover:bg-slate-800 group-hover:text-white transition-all">
+                Search Rides <Search size={22} strokeWidth={3} />
               </div>
             </div>
           </div>
         </div>
 
         {/* Middle Section: Activity & Tip */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-slate-900">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-8 mb-12">
+          <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl rounded-4xl p-6 md:p-10 border border-slate-200/70 shadow-pastel-shadow">
+            <div className="flex items-center justify-between mb-10">
+              <h3 className="text-2xl font-black text-slate-800">
                 Recent Activity
               </h3>
-              <button className="text-indigo-600 font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">
-                Full History <ArrowUpRight size={16} />
+              <button className="text-pastel-mint-dark font-black text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                Full History <ArrowUpRight size={18} />
               </button>
             </div>
             <div className="space-y-4">
@@ -184,58 +201,58 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-indigo-50 rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col justify-center">
-            <h3 className="text-indigo-900 font-bold text-lg mb-2">
+          <div className="bg-pastel-lavender-light rounded-4xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-center border border-slate-200/70">
+            <h3 className="text-pastel-lavender-dark font-black text-xl mb-3">
               Did you know?
             </h3>
-            <p className="text-indigo-700/70 text-sm leading-relaxed mb-6">
-              Pooling just twice a week can save you over $1,200 annually in
+            <p className="text-slate-600/80 text-sm font-bold leading-relaxed mb-8">
+              Pooling just twice a week can save you over <span className="text-pastel-lavender-dark">$1,200</span> annually in
               fuel and maintenance.
             </p>
             <button
               onClick={() => navigate("/user-profile")}
-              className="text-indigo-600 font-black text-sm flex items-center gap-2"
+              className="text-pastel-lavender-dark font-black text-sm flex items-center gap-2 group"
             >
-              Optimize Profile <ChevronRight size={16} />
+              Optimize Profile <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <Zap className="absolute -bottom-6 -right-6 text-indigo-200/50 w-32 h-32 rotate-12" />
+            <Zap className="absolute -bottom-8 -right-8 text-pastel-lavender w-36 h-36 rotate-12 opacity-20" />
           </div>
         </div>
 
         {/* BOTTOM STATS - USER ACTIVITY */}
-        <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
-              <Car size={24} />
+        <div className="bg-white/80 backdrop-blur-xl rounded-4xl p-6 md:p-8 border border-slate-200/70 shadow-pastel-shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-10">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 bg-pastel-pink-light text-pastel-pink-dark rounded-3xl flex items-center justify-center shadow-sm">
+              <Car size={32} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Your Activity
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                Your Impact
               </p>
-              <h4 className="text-lg font-bold text-slate-900">
-                Ride Statistics
+              <h4 className="text-xl font-black text-slate-800">
+                Eco Statistics
               </h4>
             </div>
           </div>
 
-          <div className="flex gap-12">
+          <div className="flex flex-wrap gap-8 md:gap-16">
             <div className="text-center md:text-left">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                 Total Rides
               </p>
-              <p className="text-2xl font-black text-indigo-600">{stats.totalRides}</p>
+              <p className="text-3xl font-black text-pastel-mint-dark">{stats.totalRides}</p>
             </div>
-            <div className="w-px h-10 bg-slate-100 hidden md:block" />
+            <div className="w-px h-12 bg-slate-200 hidden md:block" />
             <div className="text-center md:text-left">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                 Total Bookings
               </p>
-              <p className="text-2xl font-black text-emerald-600">{stats.totalBookings}</p>
+              <p className="text-3xl font-black text-pastel-lavender-dark">{stats.totalBookings}</p>
             </div>
           </div>
 
           <div className="w-full md:w-auto">
-            <button className="w-full md:w-auto px-6 py-3 bg-slate-50 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-100 transition-colors">
+            <button className="w-full md:w-auto px-10 py-4 bg-white text-slate-700 rounded-2xl text-sm font-black shadow-sm hover:shadow-md hover:bg-slate-50 transition-all border border-slate-200/70">
               View History
             </button>
           </div>
@@ -246,17 +263,15 @@ export default function Dashboard() {
 }
 
 function ActivityItem({ title, date, amount, type }) {
+  const isOffer = type === "offer";
+  const bgColor = isOffer ? "bg-pastel-mint-light" : "bg-pastel-lavender-light";
+  const iconColor = isOffer ? "text-pastel-mint-dark" : "text-pastel-lavender-dark";
+
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-colors">
-      <div className="flex items-center gap-4">
-        <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-            type === "offer"
-              ? "bg-slate-900 text-white"
-              : "bg-indigo-50 text-indigo-600"
-          }`}
-        >
-          <MapPin size={20} />
+    <div className="flex items-center justify-between p-5 rounded-3xl hover:bg-white/50 transition-all border border-transparent hover:border-slate-200/70 shadow-none hover:shadow-sm">
+      <div className="flex items-center gap-5">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bgColor} ${iconColor} shadow-inner`}>
+          <MapPin size={24} />
         </div>
         <div>
           <h4 className="font-bold text-slate-900 text-sm">{title}</h4>
@@ -265,14 +280,13 @@ function ActivityItem({ title, date, amount, type }) {
       </div>
       <div className="text-right">
         <p
-          className={`text-sm font-black ${
-            type === "offer" ? "text-emerald-600" : "text-slate-900"
-          }`}
+          className={`text-base font-black ${isOffer ? "text-pastel-mint-dark" : "text-slate-800"
+            }`}
         >
           {amount}
         </p>
-        <p className="text-[10px] font-bold text-slate-300 uppercase">
-          {type === "offer" ? "Earned" : "Paid"}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          {isOffer ? "Earned" : "Paid"}
         </p>
       </div>
     </div>

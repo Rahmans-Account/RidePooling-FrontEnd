@@ -54,6 +54,16 @@ export const bookingService = {
     }
   },
 
+  forceCompleteByDriver: async (rideId) => {
+    try {
+      const response = await api.post(`/bookings/${rideId}/force-complete-driver`);
+      return response.data;
+    } catch (error) {
+      notify.error(error.response?.data?.message || 'Failed to force-complete ride');
+      throw error;
+    }
+  },
+
   markCompletedByPassenger: async (rideId) => {
     try {
       const response = await api.post(`/bookings/${rideId}/complete-passenger`);
