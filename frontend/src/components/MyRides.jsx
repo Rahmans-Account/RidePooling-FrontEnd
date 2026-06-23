@@ -4,8 +4,11 @@ import {
   XCircle, Clock, ArrowRight, TrendingUp,
   Map, MoreHorizontal, AlertCircle
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { notify } from "../utils/notify";
 
 export default function MyRides({ rides = [], onCancel }) {
+  const navigate = useNavigate();
   const getStatusConfig = (status) => {
     switch (status.toLowerCase()) {
       case "upcoming":
@@ -22,11 +25,9 @@ export default function MyRides({ rides = [], onCancel }) {
   };
 
   const handleCancel = (ride) => {
-    if (
-      window.confirm(`Are you sure you want to decommission the ride: ${ride.route}?`)
-    ) {
+    notify.confirm(`Are you sure you want to decommission the ride: ${ride.route}?`, () => {
       onCancel?.(ride);
-    }
+    });
   };
 
   return (
@@ -121,7 +122,10 @@ export default function MyRides({ rides = [], onCancel }) {
           <p className="text-slate-400 font-medium italic mt-2">
             "Broadcast your first expedition to initiate the matrix."
           </p>
-          <button className="mt-10 bg-slate-800 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-slate-900 transition-all active:scale-95">
+          <button
+            onClick={() => navigate("/offer-ride")}
+            className="mt-10 bg-slate-800 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-slate-900 transition-all active:scale-95"
+          >
             + DEPLOY EXPEDITION
           </button>
         </div>

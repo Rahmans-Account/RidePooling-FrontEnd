@@ -28,13 +28,13 @@ export default function Register() {
   const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [kycFiles, setKycFiles] = useState({
-    licensePhoto: null,
-    idPhoto: null,
-    vehiclePhoto: null,
-    platePhoto: null,
-  });
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (authService.isAuthenticated()) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const validate = () => {
     const errs = {};
@@ -67,18 +67,6 @@ export default function Register() {
       try {
         const response = await authService.register(form);
         if (response.success) {
-          const hasKycDocs = Object.values(kycFiles).some(Boolean);
-          if (hasKycDocs) {
-            const formData = new FormData();
-            Object.entries(kycFiles).forEach(([key, file]) => {
-              if (file) formData.append(key, file);
-            });
-            try {
-              await authService.uploadKYC(formData);
-            } catch (uploadErr) {
-              notify.warn(uploadErr.message || 'Account created, but KYC upload failed. You can upload later from profile.');
-            }
-          }
           notify.registerSuccess();
           navigate("/login");
         }
@@ -180,28 +168,6 @@ export default function Register() {
               error={errors.city}
             />
           </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest ml-1">Optional KYC Documents</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { key: 'licensePhoto', label: 'Driving License', color: 'bg-pastel-mint-light' },
-                    { key: 'idPhoto', label: 'Government ID', color: 'bg-pastel-lavender-light' },
-                    { key: 'vehiclePhoto', label: 'Vehicle Photo', color: 'bg-pastel-peach-light' },
-                    { key: 'platePhoto', label: 'Number Plate', color: 'bg-pastel-pink-light' },
-                  ].map((doc) => (
-                    <div key={doc.key} className={`border border-slate-200/70 shadow-sm rounded-2xl p-4 ${doc.color}/40`}>
-                      <p className="text-[10px] font-black text-slate-600 uppercase mb-2 tracking-tighter">{doc.label}</p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setKycFiles((prev) => ({ ...prev, [doc.key]: e.target.files?.[0] || null }))}
-                        className="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border file:border-slate-200/70 file:text-[10px] file:font-semibold file:bg-white file:text-slate-700 hover:file:bg-slate-50 transition-all cursor-pointer"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
 
           {/* Password - Full Width */}
           <div className="space-y-2">

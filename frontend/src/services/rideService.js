@@ -35,6 +35,8 @@ const rideService = {
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
       if (filters.latitude) params.append('latitude', filters.latitude);
       if (filters.longitude) params.append('longitude', filters.longitude);
+      if (filters.destLatitude) params.append('destLatitude', filters.destLatitude);
+      if (filters.destLongitude) params.append('destLongitude', filters.destLongitude);
       if (filters.maxDistanceKm) params.append('maxDistanceKm', filters.maxDistanceKm);
       params.append('status', 'active');
 

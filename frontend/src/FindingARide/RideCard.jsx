@@ -9,9 +9,10 @@ import {
   ShieldCheck,
   IndianRupee 
 } from "lucide-react";
+import { motion } from "framer-motion";
 import reviewService from "../api/reviewService";
 
-export default function RideCard({ ride }) {
+export default function RideCard({ ride, isPinkOverlay }) {
   const navigate = useNavigate();
   const [driverRating, setDriverRating] = useState(null);
 
@@ -42,6 +43,11 @@ export default function RideCard({ ride }) {
 
   // Calculate actual seats left
   const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
+  const pendingSeats = ride.passengers
+    ? ride.passengers
+        .filter(p => p.status === 'pending')
+        .reduce((sum, p) => sum + (p.bookedSeats || 0), 0)
+    : 0;
   const driverName = ride.driver?.name || "Unknown Driver";
   const driverAvatar = driverName[0] || "U";
   const driverRatingValue = driverRating?.averageRating || ride.driver?.rating?.toFixed(1) || "5.0";
@@ -50,24 +56,73 @@ export default function RideCard({ ride }) {
   const pricePerSeat = ride.pricePerSeat || 0;
   const estimatedFare = Number(ride.fareBreakdown?.totalFare || 0);
   const platformFee = Number(ride.fareBreakdown?.platformFee || 0);
-  const driverEarningEstimate = estimatedFare > 0 ? Math.max(0, estimatedFare - platformFee) : 0;
+
+  const getDriverBioBubbles = () => {
+    const tags = [];
+    const desc = (ride.description || "").toLowerCase();
+    
+    if (desc.includes("silent") || desc.includes("quiet") || desc.includes("talk")) {
+      tags.push({ text: "🤫 Quiet Ride", color: "bg-pastel-lavender-light/60 text-pastel-lavender-dark border-pastel-lavender/20" });
+    }
+    if (desc.includes("music") || desc.includes("song") || desc.includes("playlist")) {
+      tags.push({ text: "🎵 Indie Music", color: "bg-pastel-mint-light/60 text-pastel-mint-dark border-pastel-mint/20" });
+    }
+    if (desc.includes("coffee") || desc.includes("cafe") || desc.includes("stop")) {
+      tags.push({ text: "☕ Coffee Stop", color: "bg-pastel-peach-light/60 text-pastel-peach-dark border-pastel-peach/20" });
+    }
+    if (desc.includes("ac") || desc.includes("chill") || desc.includes("cool")) {
+      tags.push({ text: "❄️ Ice Cold AC", color: "bg-cyan-50 text-cyan-600 border-cyan-100" });
+    }
+    
+    if (tags.length === 0) {
+      const stableValue = (driverName.charCodeAt(0) || 0) + (driverName.charCodeAt(driverName.length - 1) || 0);
+      if (stableValue % 3 === 0) {
+        tags.push({ text: "🎵 Indie Music", color: "bg-pastel-mint-light/60 text-pastel-mint-dark border-pastel-mint/20" });
+        tags.push({ text: "🤫 Quiet Ride", color: "bg-pastel-lavender-light/60 text-pastel-lavender-dark border-pastel-lavender/20" });
+      } else if (stableValue % 3 === 1) {
+        tags.push({ text: "☕ Coffee Stop", color: "bg-pastel-peach-light/60 text-pastel-peach-dark border-pastel-peach/20" });
+        tags.push({ text: "🚭 No Smoking", color: "bg-pastel-pink-light/60 text-pastel-pink-dark border-pastel-pink/20" });
+      } else {
+        tags.push({ text: "💬 Talkative", color: "bg-pastel-yellow-light/60 text-pastel-yellow-dark border-pastel-yellow/20" });
+        tags.push({ text: "🎵 Pop Hits", color: "bg-pastel-mint-light/60 text-pastel-mint-dark border-pastel-mint/20" });
+      }
+    }
+    return tags;
+  };
 
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -6, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={handleClick}
-      className="group relative bg-white/80 backdrop-blur-xl rounded-[3rem] border border-slate-200/70 p-6 shadow-pastel-shadow hover:shadow-2xl hover:shadow-pastel-lavender/20 transition-all duration-700 cursor-pointer hover:-translate-y-2 overflow-hidden"
+      className={`group relative bg-white/80 backdrop-blur-xl rounded-[3rem] border p-6 shadow-pastel-shadow transition-all duration-700 cursor-pointer overflow-hidden ${
+        isPinkOverlay 
+          ? "border-pastel-pink/50 hover:border-pastel-pink hover:shadow-pastel-pink/20" 
+          : "border-slate-200/70 hover:border-pastel-lavender hover:shadow-pastel-lavender/20"
+      }`}
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-pastel-lavender-light/20 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity" />
+      
       {/* Top Section: Driver & Timing */}
       <div className="flex items-center justify-between mb-8 relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pastel-lavender-dark to-pastel-lavender flex items-center justify-center text-slate-800 font-black shadow-lg shadow-pastel-lavender/20 group-hover:scale-110 transition-transform duration-500">
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${
+              isPinkOverlay 
+                ? "from-pastel-pink-dark to-pastel-pink" 
+                : "from-pastel-lavender-dark to-pastel-lavender"
+              } flex items-center justify-center text-slate-800 font-black shadow-lg transition-transform duration-500 group-hover:scale-110 ${
+                ride.driver?.isVerified ? "neon-glow-mint border-2 border-pastel-mint-dark" : "shadow-pastel-lavender/20"
+              }`}
+            >
               {driverAvatar}
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-pastel-mint-light">
-              <ShieldCheck size={14} className="text-pastel-mint-dark" fill="currentColor" fillOpacity={0.2} />
-            </div>
+            {ride.driver?.isVerified && (
+              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-pastel-mint-light">
+                <ShieldCheck size={14} className="text-pastel-mint-dark" fill="currentColor" fillOpacity={0.2} />
+              </div>
+            )}
           </div>
           <div>
             <h4 className="font-black text-slate-800 text-sm leading-tight group-hover:text-pastel-lavender-dark transition-colors tracking-tight">
@@ -92,7 +147,7 @@ export default function RideCard({ ride }) {
       </div>
 
       {/* Route Section */}
-      <div className="relative mb-8 px-2 z-10">
+      <div className="relative mb-6 px-2 z-10">
         <div className="flex items-center gap-6">
           <div className="flex-1 space-y-4">
             <div className="flex items-center gap-3">
@@ -135,21 +190,41 @@ export default function RideCard({ ride }) {
         </div>
       </div>
 
+      {/* Driver Preference Tags (Bio Bubbles) */}
+      <div className="flex flex-wrap gap-2 mb-6 relative z-10">
+        {getDriverBioBubbles().map((tag, idx) => (
+          <span
+            key={idx}
+            className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-wider ${tag.color}`}
+          >
+            {tag.text}
+          </span>
+        ))}
+      </div>
+
       {/* Bottom Section: Seats & Action */}
       <div className="flex items-center justify-between pt-6 border-t-2 border-dashed border-slate-50 relative z-10">
-        <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-2xl ${
-          seatsLeft > 0 
-            ? 'bg-pastel-mint-light/20 border border-pastel-mint-light' 
-            : 'bg-pastel-pink-light/20 border border-pastel-pink-light'
-        }`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${seatsLeft > 0 ? 'bg-pastel-mint-dark animate-pulse' : 'bg-pastel-pink-dark'}`} />
-          <span className={`text-[10px] font-black uppercase tracking-widest ${
+        <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-2xl ${
             seatsLeft > 0 
-              ? 'text-pastel-mint-dark' 
-              : 'text-pastel-pink-dark'
+              ? 'bg-pastel-mint-light/20 border border-pastel-mint-light' 
+              : 'bg-pastel-pink-light/20 border border-pastel-pink-light'
           }`}>
-            {seatsLeft > 0 ? `${seatsLeft} ${seatsLeft !== 1 ? 'Spaces' : 'Space'}` : 'Full'}
-          </span>
+            <div className={`w-1.5 h-1.5 rounded-full ${seatsLeft > 0 ? 'bg-pastel-mint-dark animate-pulse' : 'bg-pastel-pink-dark'}`} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${
+              seatsLeft > 0 
+                ? 'text-pastel-mint-dark' 
+                : 'text-pastel-pink-dark'
+            }`}>
+              {seatsLeft > 0 ? `${seatsLeft} ${seatsLeft !== 1 ? 'Spaces' : 'Space'}` : 'Full'}
+            </span>
+          </div>
+          {pendingSeats > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-amber-700">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+              <span>{pendingSeats} On Hold</span>
+            </div>
+          )}
         </div>
  
         <div className="flex items-center gap-2 text-pastel-lavender-dark text-[10px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
@@ -159,6 +234,6 @@ export default function RideCard({ ride }) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -3,33 +3,39 @@ export default {
   theme: {
     extend: {
       colors: {
+        chalk: {
+          cream: '#F9F9FB',
+        },
+        currant: {
+          dark: '#1E1A34',
+        },
         pastel: {
           mint: {
-            light: '#E0F2F1',
-            DEFAULT: '#B2DFDB',
-            dark: '#4DB6AC',
+            light: '#EAF8F1',
+            DEFAULT: '#D0F2E5',
+            dark: '#8CCAB0',
           },
           lavender: {
-            light: '#F3E5F5',
-            DEFAULT: '#E1BEE7',
-            dark: '#9575CD',
+            light: '#F3ECFA',
+            DEFAULT: '#E5D9F2',
+            dark: '#B7A4DB',
           },
           pink: {
-            light: '#FCE4EC',
-            DEFAULT: '#F8BBD0',
-            dark: '#F06292',
+            light: '#FCEDEE',
+            DEFAULT: '#FCE1E4',
+            dark: '#E4A6B0',
           },
           peach: {
-            light: '#FFF3E0',
-            DEFAULT: '#FFE0B2',
-            dark: '#FFB74D',
+            light: '#FDF0E5',
+            DEFAULT: '#FAD2B8',
+            dark: '#E7A87F',
           },
           yellow: {
             light: '#FFF9C4',
             DEFAULT: '#FFF59D',
             dark: '#FBC02D',
           },
-          cream: '#FFFBE6',
+          cream: '#F9F9FB',
         }
       },
       borderRadius: {

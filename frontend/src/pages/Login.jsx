@@ -21,6 +21,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    if (authService.isAuthenticated()) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
   const validate = () => {
     const errs = {};
     if (!form.email) errs.email = "Email is required.";

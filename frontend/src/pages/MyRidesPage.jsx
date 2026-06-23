@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRide } from "../hooks/useRide";
 import bookingService from "../api/bookingService";
+import { notify } from "../utils/notify";
 
 export default function MyRidesPage() {
   const navigate = useNavigate();
@@ -21,26 +22,29 @@ export default function MyRidesPage() {
   }, []);
 
   const handleCancel = async (rideId) => {
-    if (!window.confirm("Are you sure you want to cancel this ride?")) return;
-    
-    setCancellingId(rideId);
-    const success = await cancelRide(rideId);
-    setCancellingId(null);
-    if (success) {
-      await fetchMyRides();
-    }
+    notify.confirm("Are you sure you want to cancel this ride?", async () => {
+      setCancellingId(rideId);
+      const success = await cancelRide(rideId);
+      setCancellingId(null);
+      if (success) {
+        notify.success("Ride cancelled successfully.");
+        await fetchMyRides();
+      } else {
+        notify.error("Failed to cancel ride.");
+      }
+    });
   };
 
   const handleEndRide = async (rideId) => {
-    if (!window.confirm("Have you completed this ride? This will mark it as done from your side.")) return;
-    
-    try {
-      await bookingService.markCompletedByDriver(rideId);
-      alert("Ride marked as complete! Waiting for passenger confirmation.");
-      await fetchMyRides();
-    } catch (error) {
-      alert(error.response?.data?.message || "Failed to mark ride as complete");
-    }
+    notify.confirm("Have you completed this ride? This will mark it as done from your side.", async () => {
+      try {
+        await bookingService.markCompletedByDriver(rideId);
+        notify.success("Ride marked as complete! Waiting for passenger confirmation.");
+        await fetchMyRides();
+      } catch (error) {
+        notify.error(error.response?.data?.message || "Failed to mark ride as complete");
+      }
+    });
   };
 
   // Filter rides based on tab

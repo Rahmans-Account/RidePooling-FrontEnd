@@ -1,28 +1,57 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Search, MapPin, Loader2, Navigation, Compass } from "lucide-react";
+import authService from "../services/authService";
 
-export default function AutoCompleteLocation({ label, onSelect, onTyping }) {
+export default function AutoCompleteLocation({
+  label,
+  onSelect,
+  onTyping,
+  biasSuffix = null, // if null, fallback to user city. if empty string, no bias.
+  viewbox = "",
+  bounded = false,
+}) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
+
+  // Clean up timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+    };
+  }, [debounceTimeout]);
 
   // fetch suggestions from Nominatim API
   const fetchSuggestions = async (value) => {
     setLoading(true);
     try {
+      let suffix = biasSuffix;
+      if (suffix === null) {
+        const user = authService.getCurrentUser();
+        suffix = user?.city || "";
+      }
+
+      const queryParams = {
+        q: suffix ? `${value} ${suffix}` : value,
+        format: "json",
+        addressdetails: 1,
+        limit: 5,
+        countrycodes: "in",
+      };
+
+      if (viewbox) {
+        queryParams.viewbox = viewbox;
+      }
+      if (bounded) {
+        queryParams.bounded = 1;
+      }
+
       const res = await axios.get(
         "https://nominatim.openstreetmap.org/search",
         {
-          params: {
-            q: `${value} Telangana`, // bias search toward Telangana
-            format: "json",
-            addressdetails: 1,
-            limit: 5,
-            countrycodes: "in",
-            viewbox: "77.0,19.5,82.0,15.5", // roughly Telangana
-            bounded: 1,
-          },
+          params: queryParams,
           headers: {
             "User-Agent": "RidePoolingApp/1.0",
           },
@@ -45,8 +74,15 @@ export default function AutoCompleteLocation({ label, onSelect, onTyping }) {
     // 🔹 call parent's onTyping to clear error
     if (onTyping) onTyping();
 
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
     if (value.length > 2) {
-      fetchSuggestions(value);
+      const timeoutId = setTimeout(() => {
+        fetchSuggestions(value);
+      }, 300);
+      setDebounceTimeout(timeoutId);
     } else {
       setSuggestions([]);
     }
@@ -90,7 +126,7 @@ export default function AutoCompleteLocation({ label, onSelect, onTyping }) {
       </div>
 
       {suggestions.length > 0 && (
-        <ul className="absolute bg-white/90 backdrop-blur-xl border-2 border-white rounded-[2.5rem] shadow-2xl w-full mt-4 max-h-72 overflow-y-auto z-[100] p-4 space-y-2 animate-in slide-in-from-top-4">
+        <ul className="absolute bg-white/90 backdrop-blur-xl border-2 border-white rounded-[2.5rem] shadow-2xl w-full mt-4 max-h-72 overflow-y-auto z-[9999] p-4 space-y-2 animate-in slide-in-from-top-4">
           <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em] mb-4 ml-4">Coordinate Suggestion</p>
           {suggestions.map((place) => (
             <li

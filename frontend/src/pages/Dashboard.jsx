@@ -77,7 +77,7 @@ export default function Dashboard() {
           const end = p.ride?.endLocation?.address || "";
           const title = end ? `${start} → ${end}` : start;
           const amountValue = Number(p.amount || 0).toFixed(2);
-          const amount = p.status === "completed" ? `-$${amountValue}` : `Pending`;
+          const amount = p.status === "completed" ? `-₹${amountValue}` : `Pending`;
           const date = p.createdAt
             ? new Date(p.createdAt).toLocaleString()
             : "";
@@ -206,7 +206,7 @@ export default function Dashboard() {
               Did you know?
             </h3>
             <p className="text-slate-600/80 text-sm font-bold leading-relaxed mb-8">
-              Pooling just twice a week can save you over <span className="text-pastel-lavender-dark">$1,200</span> annually in
+              Pooling just twice a week can save you over <span className="text-pastel-lavender-dark">₹10,000</span> annually in
               fuel and maintenance.
             </p>
             <button

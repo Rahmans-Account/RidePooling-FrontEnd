@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Star, MessageSquare, AlertCircle, Quote, Clock } from "lucide-react";
 import reviewService from "../api/reviewService";
+import { notify } from "../utils/notify";
 
 export default function RideReview({ rideId, rideStatus, reviews = [], onReviewAdded }) {
   const [newRating, setNewRating] = useState(0);
@@ -25,25 +26,29 @@ export default function RideReview({ rideId, rideStatus, reviews = [], onReviewA
       setNewRating(0);
       setComment("");
       onReviewAdded?.();
+      notify.success("Review submitted successfully!");
     } catch (err) {
       setError(err.response?.data?.message || "Transmission failed.");
+      notify.error("Failed to submit review.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm("Archive this transmission?")) return;
-    
-    setDeletingId(reviewId);
-    try {
-      await reviewService.deleteReview(reviewId);
-      onReviewAdded?.();
-    } catch (err) {
-      setError(err.response?.data?.message || "Deletion failed.");
-    } finally {
-      setDeletingId(null);
-    }
+    notify.confirm("Archive this transmission?", async () => {
+      setDeletingId(reviewId);
+      try {
+        await reviewService.deleteReview(reviewId);
+        notify.success("Review archived.");
+        onReviewAdded?.();
+      } catch (err) {
+        setError(err.response?.data?.message || "Deletion failed.");
+        notify.error("Failed to archive review.");
+      } finally {
+        setDeletingId(null);
+      }
+    });
   };
 
   return (

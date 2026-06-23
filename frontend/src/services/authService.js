@@ -151,18 +151,6 @@ const authService = {
     }
   },
 
-  async uploadKYC(formData) {
-    try {
-      const response = await api.post('/auth/kyc', formData, {
-        // Let the browser set multipart boundary automatically.
-        timeout: 120000,
-      });
-
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { success: false, message: 'Failed to upload KYC documents' };
-    }
-  },
 };
 
 export default authService;

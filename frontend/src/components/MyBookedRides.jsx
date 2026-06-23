@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Trash2, MapPin, Clock, Users, IndianRupee, Check, Navigation, AlertCircle, Loader2 } from "lucide-react";
 import LiveTracking from "./LiveTracking";
 import bookingService from "../api/bookingService";
+import { notify } from "../utils/notify";
 
 export default function MyBookedRides({ bookings = [], onCancelBooking = null, onRefresh = null }) {
   const [cancellingId, setCancellingId] = useState(null);
@@ -29,28 +30,30 @@ export default function MyBookedRides({ bookings = [], onCancelBooking = null, o
     }
   };
 
-  const handleCancel = async (rideId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    setCancellingId(rideId);
-    try {
-      await onCancelBooking?.(rideId);
-    } finally {
-      setCancellingId(null);
-    }
+  const handleCancel = (rideId) => {
+    notify.confirm("Are you sure you want to cancel this booking?", async () => {
+      setCancellingId(rideId);
+      try {
+        await onCancelBooking?.(rideId);
+      } finally {
+        setCancellingId(null);
+      }
+    });
   };
 
-  const handleMarkDone = async (rideId) => {
-    if (!window.confirm("Have you reached your destination? This will mark the ride as complete from your side.")) return;
-    setCompletingId(rideId);
-    try {
-      await bookingService.markCompletedByPassenger(rideId);
-      alert("Ride marked as complete! Waiting for driver confirmation.");
-      onRefresh?.();
-    } catch (error) {
-      alert(error.response?.data?.message || "Failed to mark as complete");
-    } finally {
-      setCompletingId(null);
-    }
+  const handleMarkDone = (rideId) => {
+    notify.confirm("Have you reached your destination? This will mark the ride as complete from your side.", async () => {
+      setCompletingId(rideId);
+      try {
+        await bookingService.markCompletedByPassenger(rideId);
+        notify.success("Ride marked as complete! Waiting for driver confirmation.");
+        onRefresh?.();
+      } catch (error) {
+        notify.error(error.response?.data?.message || "Failed to mark as complete");
+      } finally {
+        setCompletingId(null);
+      }
+    });
   };
 
   const formatDateTime = (dateTime) => {

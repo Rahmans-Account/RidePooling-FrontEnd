@@ -72,6 +72,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
   const [timerStarted, setTimerStarted] = useState(false);
   const [remainingTime, setRemainingTime] = useState(300); // 5 minute countdown
   const [sosHoldActive, setSosHoldActive] = useState(false);
+  const [activeSosAlert, setActiveSosAlert] = useState(null);
   const trackingIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
   const sosHoldTimeoutRef = useRef(null);
@@ -122,8 +123,12 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
     // Listen for Emergency Alerts
     socketService.onEmergencyAlert((alertData) => {
       console.warn('🚨 EMERGENCY ALERT RECEIVED:', alertData);
-      window.alert(`🚨 EMERGENCY ALERT: ${alertData.userName} has triggered an SOS! Location: ${alertData.location.latitude}, ${alertData.location.longitude}`);
-      notify.error(`🚨 EMERGENCY: SOS triggered by ${alertData.userName}`);
+      notify.error(`🚨 EMERGENCY: SOS triggered by ${alertData.userName} at ${alertData.location.latitude}, ${alertData.location.longitude}`);
+      setActiveSosAlert({
+        triggeredBySelf: false,
+        userName: alertData.userName,
+        location: alertData.location
+      });
     });
 
     // Listen for Ride Status Updates
@@ -253,7 +258,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         timerStartTimeRef.current = null;
         setTimerStarted(false);
         stopTracking();
-        alert(`✅ Payment Confirmed!\n₹${data?.amount || 0} received\n\nRedirecting to Payment History...`);
+        notify.success(`✅ Payment Confirmed! ₹${data?.amount || 0} received. Redirecting to Payment History...`);
         setTimeout(() => {
           console.log('Closing tracking and navigating...');
           onClose();
@@ -261,7 +266,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
         }, 1500);
       } else if (data?.passengerId === currentUserId) {
         // Passenger flow: redirect to Payment History after webhook-confirmed success
-        alert('✅ Payment successful! Redirecting to Payment History...');
+        notify.success('✅ Payment successful! Redirecting to Payment History...');
         setTimeout(() => {
           onClose();
           navigate('/payment-history');
@@ -289,11 +294,52 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
       };
       socketService.sendSos(rideId, locationData);
       notify.warn('SOS Alert Sent! Police and emergency contacts are being notified.');
-      alert('🚨 SOS triggered! Help is on the way.');
+      setActiveSosAlert({
+        triggeredBySelf: true,
+        userName: 'You',
+        location: locationData
+      });
     }).catch(error => {
       console.error('SOS error:', error);
       notify.error('Failed to trigger SOS. Please call local emergency numbers.');
     });
+  };
+
+  const getProximityStatus = () => {
+    if (driverCompleted || passengerCompleted || rideFullData?.rideStatus === 'completed' || rideFullData?.rideStatus === 'payment_pending') {
+      return 'Arrived at Destination';
+    }
+    if (rideFullData?.pickupVerified || rideFullData?.rideStatus === 'in_progress') {
+      return 'On Route to Destination';
+    }
+    
+    // Proximity to pickup
+    const distNum = parseFloat(distance);
+    if (!isNaN(distNum)) {
+      if (distNum <= 0.1) {
+        return 'Arrived at Pickup';
+      } else if (distNum <= 1.5) {
+        return 'Arriving Soon';
+      }
+    }
+    return 'En Route to Pickup';
+  };
+
+  const getProximityStatusDetails = () => {
+    const status = getProximityStatus();
+    switch (status) {
+      case 'Arrived at Destination':
+        return { text: 'Arrived at Destination', bg: 'bg-pastel-mint-light/80 text-pastel-mint-dark border-pastel-mint' };
+      case 'On Route to Destination':
+        return { text: 'On Route to Drop', bg: 'bg-pastel-lavender-light/80 text-pastel-lavender-dark border-pastel-lavender' };
+      case 'Arrived at Pickup':
+        return { text: 'Arrived at Pickup', bg: 'bg-pastel-yellow/80 text-amber-800 border-pastel-yellow border animate-pulse' };
+      case 'Arriving Soon':
+        return { text: 'Arriving Soon', bg: 'bg-pastel-pink-light/80 text-pastel-pink-dark border-pastel-pink' };
+      case 'En Route to Pickup':
+      default:
+        return { text: 'En Route to Pickup', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
   };
 
   const startSosHold = () => {
@@ -327,7 +373,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
   const handleCompleteRide = async () => {
     try {
       if (!canMarkCompletion) {
-        alert('Completion is allowed only within 500m of the destination.');
+        notify.error('Completion is allowed only within 500m of the destination.');
         return;
       }
 
@@ -376,7 +422,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
       } else if (isDriver && !paymentPending) {
         console.log('Driver completed; no payment pending, ride complete');
         stopTracking();
-        alert('✅ Ride completed successfully!');
+        notify.success('✅ Ride completed successfully!');
         setTimeout(() => {
           onClose();
           navigate('/my-rides');
@@ -384,43 +430,32 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
       }
     } catch (error) {
       console.error('Failed to mark completion:', error);
-      alert(error?.response?.data?.message || 'Failed to mark as completed');
+      notify.error(error?.response?.data?.message || 'Failed to mark as completed');
     } finally {
       setCompletionLoading(false);
     }
   };
 
   useEffect(() => {
-    let fenceInterval = null;
+    if (!dropLocation?.latitude || !dropLocation?.longitude) {
+      setDistanceToDropKm(null);
+      return;
+    }
 
-    const updateFenceDistance = () => {
-      if (!dropLocation?.latitude || !dropLocation?.longitude) {
-        setDistanceToDropKm(null);
-        return;
-      }
+    const userLoc = isDriver ? driverLocation : passengerLocation;
+    if (!userLoc?.latitude || !userLoc?.longitude) {
+      setDistanceToDropKm(null);
+      return;
+    }
 
-      geolocationService.getCurrentPosition()
-        .then((position) => {
-          const km = geolocationService.calculateDistance(
-            Number(position.latitude),
-            Number(position.longitude),
-            Number(dropLocation.latitude),
-            Number(dropLocation.longitude)
-          );
-          setDistanceToDropKm(km);
-        })
-        .catch(() => {
-          setDistanceToDropKm(null);
-        });
-    };
-
-    updateFenceDistance();
-    fenceInterval = setInterval(updateFenceDistance, 10000);
-
-    return () => {
-      if (fenceInterval) clearInterval(fenceInterval);
-    };
-  }, [dropLocation]);
+    const km = geolocationService.calculateDistance(
+      Number(userLoc.latitude),
+      Number(userLoc.longitude),
+      Number(dropLocation.latitude),
+      Number(dropLocation.longitude)
+    );
+    setDistanceToDropKm(km);
+  }, [dropLocation, driverLocation, passengerLocation, isDriver]);
 
   return (
     <div className="fixed inset-0 bg-pastel-cream z-50 overflow-hidden font-[Poppins]">
@@ -440,7 +475,17 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
               <Navigation size={20} className="rotate-180" />
             </button>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Live Journey</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Live Journey</h1>
+                {(() => {
+                  const details = getProximityStatusDetails();
+                  return (
+                    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border shadow-sm ${details.bg}`}>
+                      {details.text}
+                    </span>
+                  );
+                })()}
+              </div>
               <p className="text-xs font-bold uppercase tracking-widest mt-1">
                 {isConnected ? (
                   <span className="flex items-center gap-1 text-pastel-mint-dark">
@@ -540,9 +585,9 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  if (window.confirm('Trigger SOS emergency alert now?')) {
+                  notify.confirm('Trigger SOS emergency alert now?', () => {
                     handleSos();
-                  }
+                  });
                 }
               }}
               aria-label="Hold to trigger SOS emergency alert"
@@ -565,7 +610,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
           center={mapCenter}
           zoom={15}
           className="h-full w-full z-0 saturate-[.8] contrast-[1.1]"
-          zoomControl={false}
+          zoomControl={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -755,7 +800,7 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
           setShowPaymentModal(false);
           stopTracking();
           // Show success message
-          alert('✅ Payment successful! Thank you for your payment.');
+          notify.success('✅ Payment successful! Thank you for your payment.');
           // Redirect to payment history
           setTimeout(() => {
             onClose();
@@ -763,6 +808,66 @@ export default function LiveTracking({ rideId, isDriver, pickupLocation, dropLoc
           }, 1500);
         }}
       />
+
+      {/* SOS Escalation Modal Overlay */}
+      {activeSosAlert && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-red-500 animate-in zoom-in-95 duration-200">
+            <div className="bg-red-600 p-6 text-white text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-25 scale-75"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse">
+                  <span className="text-3xl">🚨</span>
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tight">EMERGENCY SOS</h2>
+                <p className="text-xs text-red-100 font-bold uppercase tracking-widest mt-1">Alert Broadcasted</p>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              {activeSosAlert.triggeredBySelf ? (
+                <div className="space-y-3">
+                  <p className="text-slate-800 font-bold text-center text-base">
+                    Emergency services and co-riders have been notified!
+                  </p>
+                  <p className="text-slate-500 text-xs text-center leading-relaxed">
+                    We have shared your current location: <strong className="font-mono">{activeSosAlert.location?.latitude?.toFixed(5)}, {activeSosAlert.location?.longitude?.toFixed(5)}</strong>
+                  </p>
+                  <div className="bg-red-50 rounded-2xl p-4 border border-red-100 text-red-800 text-xs font-semibold leading-relaxed">
+                    ⚠️ Please stay in a safe location if possible. Help is on the way.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-slate-800 font-bold text-center text-base">
+                    <span className="font-extrabold text-red-600">{activeSosAlert.userName}</span> has triggered an emergency alert!
+                  </p>
+                  <p className="text-slate-500 text-xs text-center leading-relaxed">
+                    Last known coordinates: <strong className="font-mono">{activeSosAlert.location?.latitude?.toFixed(5)}, {activeSosAlert.location?.longitude?.toFixed(5)}</strong>
+                  </p>
+                  <div className="bg-red-50 rounded-2xl p-4 border border-red-100 text-red-800 text-xs font-semibold leading-relaxed">
+                    Please call emergency service agencies immediately or assist if close and safe to do so.
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <a
+                  href="tel:112"
+                  className="flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-sm transition-all shadow-md active:scale-95 text-center"
+                >
+                  📞 Call Police
+                </a>
+                <button
+                  onClick={() => setActiveSosAlert(null)}
+                  className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl font-black text-sm transition-all active:scale-95 text-center"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

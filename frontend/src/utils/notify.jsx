@@ -208,6 +208,37 @@ export const notify = {
   unauthorized: () => {
     notify.error('❌ You are not authorized for this action');
   },
+
+  confirm: (message, onConfirm, onCancel = () => {}) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 p-1 font-[Poppins]">
+        <p className="font-bold text-slate-800 text-xs tracking-tight">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              onCancel();
+            }}
+            className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              onConfirm();
+            }}
+            className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white bg-slate-800 hover:bg-slate-900 rounded-xl shadow-md transition-all active:scale-95"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+      position: 'top-center',
+    });
+  },
 };
 
 export default notify;

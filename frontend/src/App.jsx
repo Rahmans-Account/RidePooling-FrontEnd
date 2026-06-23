@@ -15,6 +15,7 @@ import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 import RiderBookingsPage from "./pages/RiderBookingsPage";
 import RideHistoryPage from "./pages/RideHistoryPage";
 import Layout from "./components/Layout";
+import { AuthProvider } from "./context/AuthContext";
 
 const router = createBrowserRouter([
   {
@@ -63,15 +64,27 @@ const router = createBrowserRouter([
   },
   {
     path: "/offer-ride",
-    element: <OfferRide />,
+    element: (
+      <Layout>
+        <OfferRide />
+      </Layout>
+    ),
   },
   {
     path: "/find-ride",
-    element: <FindRide />,
+    element: (
+      <Layout>
+        <FindRide />
+      </Layout>
+    ),
   },
   {
     path: "/ride/:id",
-    element: <RideDetailsPage />,
+    element: (
+      <Layout>
+        <RideDetailsPage />
+      </Layout>
+    ),
   },
   {
     path: "/user-profile",
@@ -101,7 +114,7 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <Toaster 
         position="top-right"
         reverseOrder={false}
@@ -109,32 +122,32 @@ function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: 'rgba(255, 255, 255, 0.8)',
+            background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(12px)',
-            color: '#1e293b',
-            borderRadius: '24px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
+            color: '#1E1A34',
+            borderRadius: '28px',
+            boxShadow: '0 12px 36px rgba(30, 26, 52, 0.08)',
+            border: '1px solid rgba(30, 26, 52, 0.08)',
             fontSize: '14px',
-            fontWeight: '900',
+            fontWeight: '800',
             fontFamily: 'Poppins',
           },
           success: {
             style: {
-              background: '#A8E6CF',
-              color: '#1e293b',
+              background: '#D0F2E5',
+              color: '#1E1A34',
             },
           },
           error: {
             style: {
-              background: '#FFD3B6',
-              color: '#d14343',
+              background: '#FCE1E4',
+              color: '#1E1A34',
             },
           },
         }}
       />
       <RouterProvider router={router} />
-    </>
+    </AuthProvider>
   );
 }
 

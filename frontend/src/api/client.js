@@ -9,7 +9,7 @@ const buildApiBaseCandidates = () => {
       const isLocalExplicit = ['localhost', '127.0.0.1'].includes(parsed.hostname);
       const explicitPort = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80));
 
-      if (isLocalExplicit && explicitPort >= 5003 && explicitPort <= 5004) {
+      if (isLocalExplicit && explicitPort >= 5003 && explicitPort <= 5004 && import.meta.env.MODE !== 'production') {
         const path = parsed.pathname.replace(/\/$/, '') || '/api';
         return Array.from({ length: 2 }, (_, offset) => `${parsed.protocol}//${parsed.hostname}:${5003 + offset}${path}`);
       }
@@ -21,7 +21,7 @@ const buildApiBaseCandidates = () => {
   }
 
   const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  if (!isLocalhost) {
+  if (!isLocalhost || import.meta.env.MODE === 'production') {
     return ['http://localhost:5003/api'];
   }
 

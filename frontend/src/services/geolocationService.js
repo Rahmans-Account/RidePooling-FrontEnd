@@ -6,6 +6,7 @@ class GeolocationService {
     this.watchId = null;
     this.currentPosition = null;
     this.isTracking = false;
+    this.listeners = new Set();
   }
 
   /**
@@ -59,9 +60,15 @@ class GeolocationService {
       return;
     }
 
-    if (this.isTracking) {
-      console.log('Already tracking location');
-      return;
+    this.listeners.add(callback);
+
+    // Provide instant feedback if last location is already loaded
+    if (this.currentPosition) {
+      callback(this.currentPosition, null);
+    }
+
+    if (this.watchId !== null) {
+      return; // Already listening to GPS hardware
     }
 
     const defaultOptions = {
@@ -71,6 +78,7 @@ class GeolocationService {
       ...options
     };
 
+    this.isTracking = true;
     this.watchId = navigator.geolocation.watchPosition(
       (position) => {
         this.currentPosition = {
@@ -81,11 +89,25 @@ class GeolocationService {
           heading: position.coords.heading || 0,
           timestamp: position.timestamp
         };
-        this.isTracking = true;
-        callback(this.currentPosition, null);
+        
+        // Notify all active subscribers
+        this.listeners.forEach((listener) => {
+          try {
+            listener(this.currentPosition, null);
+          } catch (err) {
+            console.error('Error in location listener callback:', err);
+          }
+        });
       },
       (error) => {
-        callback(null, this.handleError(error));
+        const parsedError = this.handleError(error);
+        this.listeners.forEach((listener) => {
+          try {
+            listener(null, parsedError);
+          } catch (err) {
+            console.error('Error in location error callback:', err);
+          }
+        });
       },
       defaultOptions
     );
@@ -94,12 +116,18 @@ class GeolocationService {
   /**
    * Stop tracking location
    */
-  stopTracking() {
-    if (this.watchId !== null) {
+  stopTracking(callback) {
+    if (callback) {
+      this.listeners.delete(callback);
+    } else {
+      this.listeners.clear();
+    }
+
+    if (this.listeners.size === 0 && this.watchId !== null) {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;
       this.isTracking = false;
-      console.log('Stopped tracking location');
+      console.log('Stopped tracking location: no active listeners');
     }
   }
 

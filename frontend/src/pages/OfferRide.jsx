@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Minus, Plus, ArrowLeft, IndianRupee, 
   MapPin, Calendar, Clock, Car, 
@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import AutoCompleteLocation from "../components/AutoCompleteLocation";
 import rideService from "../services/rideService";
+import authService from "../services/authService";
 
 export default function OfferRide() {
   const navigate = useNavigate();
@@ -37,6 +38,35 @@ export default function OfferRide() {
     registrationNumber: "",
   });
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+
+  useEffect(() => {
+    const loadPrimaryVehicle = async () => {
+      try {
+        if (!authService.isAuthenticated()) return;
+        const profileRes = await authService.getProfile();
+        if (profileRes.success && profileRes.data) {
+          const vehiclesList = profileRes.data.vehicles || [];
+          const primary = vehiclesList.find((v) => v.isPrimary);
+          if (primary) {
+            setVehicleDetails({
+              make: primary.make || "",
+              model: primary.model || "",
+              color: primary.color || "",
+              year: primary.year || new Date().getFullYear(),
+              fuelType: primary.fuelType || "petrol",
+              acAvailable: primary.acAvailable || false,
+              licensePlate: primary.licensePlate || "",
+              registrationNumber: primary.registrationNumber || "",
+            });
+            setShowVehicleForm(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load primary vehicle:", err);
+      }
+    };
+    loadPrimaryVehicle();
+  }, []);
 
   const increment = () => setSeatsTotal((s) => (s < 7 ? s + 1 : s));
   const decrement = () => seatsTotal > 1 && setSeatsTotal((s) => s - 1);
@@ -147,7 +177,7 @@ export default function OfferRide() {
             </div>
           )}
           {/* Card 1: Route */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] p-6 md:p-12 shadow-pastel-shadow border border-slate-200/70 group relative overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-xl rounded-[3rem] p-6 md:p-12 shadow-pastel-shadow border border-slate-200/70 group relative overflow-visible">
             <div className="absolute top-0 right-0 w-64 h-64 bg-pastel-mint-light/10 rounded-full blur-3xl -mr-32 -mt-32" />
             
             <div className="flex items-center gap-4 mb-10 relative z-10">
@@ -306,6 +336,13 @@ export default function OfferRide() {
                   <div className={`p-2 rounded-xl transition-all ${showVehicleForm ? "bg-pastel-lavender-dark text-white rotate-180" : "bg-white text-slate-400 group-hover:bg-pastel-lavender-dark group-hover:text-white"}`}>
                     <ChevronRight size={18} strokeWidth={3} />
                   </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/user-profile")}
+                  className="mt-2 w-full text-center text-[10px] font-black text-pastel-lavender-dark hover:underline uppercase tracking-widest block"
+                >
+                  Manage garage in Profile Settings ⚙️
                 </button>
               </div>
             </div>

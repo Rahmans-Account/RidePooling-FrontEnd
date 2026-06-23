@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { 
   MapPin, Clock, Users, IndianRupee, Navigation, Check, Loader2, 
   CheckCircle, XCircle, Key, MoreHorizontal, MessageSquare, ShieldCheck, 
-  AlertCircle,
-  Truck
+  AlertCircle, Truck, ArrowLeft
 } from "lucide-react";
 import bookingService from "../api/bookingService";
 import LiveTracking from "../components/LiveTracking";
+import { notify } from "../utils/notify";
 
 export default function RiderBookingsPage() {
   const [rides, setRides] = useState([]);
@@ -40,48 +40,57 @@ export default function RiderBookingsPage() {
   const activeRides = rides.filter((r) => r.rideStatus !== "completed");
 
   const handleDriverComplete = async (rideId) => {
-    if (!window.confirm("Broadcast journey completion?")) return;
-    setCompletingId(rideId);
-    try {
-      await bookingService.markCompletedByDriver(rideId);
-      await fetchRides();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to finalize journey.");
-    } finally {
-      setCompletingId(null);
-    }
+    notify.confirm("Broadcast journey completion?", async () => {
+      setCompletingId(rideId);
+      try {
+        await bookingService.markCompletedByDriver(rideId);
+        notify.success("Journey completion broadcasted!");
+        await fetchRides();
+      } catch (err) {
+        notify.error(err.response?.data?.message || "Failed to finalize journey.");
+      } finally {
+        setCompletingId(null);
+      }
+    });
   };
 
   const handleAcceptBooking = async (rideId, passengerId) => {
     try {
       await bookingService.acceptBooking(rideId, passengerId);
+      notify.success("Passenger link approved!");
       await fetchRides();
     } catch (err) {
       console.error("Failed to accept passenger sync", err);
+      notify.error("Failed to accept passenger.");
     }
   };
 
   const handleForceComplete = async (rideId) => {
-    if (!window.confirm("Engage force-completion protocol?")) return;
-    setForceCompletingId(rideId);
-    try {
-      await bookingService.forceCompleteByDriver(rideId);
-      await fetchRides();
-    } catch (err) {
-      alert(err.response?.data?.message || "Protocol failure.");
-    } finally {
-      setForceCompletingId(null);
-    }
+    notify.confirm("Engage force-completion protocol?", async () => {
+      setForceCompletingId(rideId);
+      try {
+        await bookingService.forceCompleteByDriver(rideId);
+        notify.success("Force-completion protocol engaged!");
+        await fetchRides();
+      } catch (err) {
+        notify.error(err.response?.data?.message || "Protocol failure.");
+      } finally {
+        setForceCompletingId(null);
+      }
+    });
   };
 
   const handleRejectBooking = async (rideId, passengerId) => {
-    if (!window.confirm("Decline this passenger link?")) return;
-    try {
-      await bookingService.rejectBooking(rideId, passengerId);
-      await fetchRides();
-    } catch (err) {
-      console.error("Failed to terminate link", err);
-    }
+    notify.confirm("Decline this passenger link?", async () => {
+      try {
+        await bookingService.rejectBooking(rideId, passengerId);
+        notify.success("Passenger link declined.");
+        await fetchRides();
+      } catch (err) {
+        console.error("Failed to terminate link", err);
+        notify.error("Failed to decline passenger link.");
+      }
+    });
   };
 
   const handleVerifyPickup = async (rideId) => {

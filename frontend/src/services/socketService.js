@@ -112,6 +112,16 @@ class SocketService {
     this.socket.emit('stop-typing');
   }
 
+  sendChatTyping(chatId, receiverId) {
+    if (!this.socket) return;
+    this.socket.emit('chat-typing', { chatId, receiverId });
+  }
+
+  sendChatStopTyping(chatId, receiverId) {
+    if (!this.socket) return;
+    this.socket.emit('chat-stop-typing', { chatId, receiverId });
+  }
+
   // Ride status
   startRide() {
     if (!this.socket) return;

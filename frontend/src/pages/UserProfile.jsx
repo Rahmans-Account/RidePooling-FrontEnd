@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Loader2, Mail, Phone, MapPin, Shield, Edit2, Save, X, 
-  User, CheckCircle, Camera, Calendar, ArrowLeft, Star, TrendingUp, ChevronRight, IndianRupee
+  User, CheckCircle, Camera, Calendar, ArrowLeft, Star, TrendingUp, ChevronRight, IndianRupee, Car
 } from "lucide-react";
 import authService from "../services/authService";
 import reviewService from "../api/reviewService";
-import KYCUpload from "../components/KYCUpload";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -19,6 +18,18 @@ export default function UserProfile() {
   const [success, setSuccess] = useState("");
   const [driverStats, setDriverStats] = useState(null);
   const [driverReviews, setDriverReviews] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [newVehicle, setNewVehicle] = useState({
+    make: "",
+    model: "",
+    color: "",
+    licensePlate: "",
+    year: new Date().getFullYear(),
+    registrationNumber: ""
+  });
+  const [vehicleError, setVehicleError] = useState("");
+  const [vehicleSuccess, setVehicleSuccess] = useState("");
+  const [vehicleActionLoading, setVehicleActionLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -42,6 +53,7 @@ export default function UserProfile() {
       if (response.success) {
         const userData = response.data.user;
         setUser(userData);
+        setVehicles(userData.vehicles || []);
         setFormData({
           name: userData.name || "",
           phone: userData.phone || "",
@@ -88,6 +100,97 @@ export default function UserProfile() {
       setError(err.message || "Failed to save changes.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddVehicle = async (e) => {
+    e.preventDefault();
+    if (!newVehicle.make || !newVehicle.model || !newVehicle.licensePlate) {
+      setVehicleError("Make, Model, and License Plate are required.");
+      return;
+    }
+    
+    setVehicleActionLoading(true);
+    setVehicleError("");
+    setVehicleSuccess("");
+    try {
+      const updatedVehicles = [...vehicles, {
+        ...newVehicle,
+        isPrimary: vehicles.length === 0 ? true : false
+      }];
+      
+      const response = await authService.updateProfile({ vehicles: updatedVehicles });
+      if (response.success) {
+        const updatedUser = response.data.user;
+        setVehicles(updatedUser.vehicles || []);
+        setUser(updatedUser);
+        setVehicleSuccess("Vehicle added successfully!");
+        setNewVehicle({
+          make: "",
+          model: "",
+          color: "",
+          licensePlate: "",
+          year: new Date().getFullYear(),
+          registrationNumber: ""
+        });
+        setTimeout(() => setVehicleSuccess(""), 4000);
+      }
+    } catch (err) {
+      setVehicleError(err.message || "Failed to add vehicle.");
+    } finally {
+      setVehicleActionLoading(false);
+    }
+  };
+
+  const handleRemoveVehicle = async (index) => {
+    setVehicleActionLoading(true);
+    setVehicleError("");
+    setVehicleSuccess("");
+    try {
+      const removedVehicle = vehicles[index];
+      const updatedVehicles = vehicles.filter((_, i) => i !== index);
+      
+      if (removedVehicle.isPrimary && updatedVehicles.length > 0) {
+        updatedVehicles[0].isPrimary = true;
+      }
+      
+      const response = await authService.updateProfile({ vehicles: updatedVehicles });
+      if (response.success) {
+        const updatedUser = response.data.user;
+        setVehicles(updatedUser.vehicles || []);
+        setUser(updatedUser);
+        setVehicleSuccess("Vehicle removed successfully!");
+        setTimeout(() => setVehicleSuccess(""), 4000);
+      }
+    } catch (err) {
+      setVehicleError(err.message || "Failed to remove vehicle.");
+    } finally {
+      setVehicleActionLoading(false);
+    }
+  };
+
+  const handleSetPrimary = async (index) => {
+    setVehicleActionLoading(true);
+    setVehicleError("");
+    setVehicleSuccess("");
+    try {
+      const updatedVehicles = vehicles.map((v, i) => ({
+        ...v,
+        isPrimary: i === index
+      }));
+      
+      const response = await authService.updateProfile({ vehicles: updatedVehicles });
+      if (response.success) {
+        const updatedUser = response.data.user;
+        setVehicles(updatedUser.vehicles || []);
+        setUser(updatedUser);
+        setVehicleSuccess("Primary vehicle updated!");
+        setTimeout(() => setVehicleSuccess(""), 4000);
+      }
+    } catch (err) {
+      setVehicleError(err.message || "Failed to set primary vehicle.");
+    } finally {
+      setVehicleActionLoading(false);
     }
   };
 
@@ -318,6 +421,192 @@ export default function UserProfile() {
                 </div>}
             </div>
 
+            {/* Vehicle Management Hub */}
+            <div className="mt-8 bg-white/80 backdrop-blur-xl rounded-[3rem] p-6 md:p-12 shadow-pastel-shadow border border-slate-200/70 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-pastel-lavender-light/10 rounded-full blur-3xl -mr-32 -mt-32" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8 relative z-10">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-800 tracking-tight">Vehicle Management</h2>
+                  <p className="text-slate-500 text-sm font-medium mt-1">Add, select, or configure your active rides</p>
+                </div>
+              </div>
+
+              {/* Status Messages for Vehicles */}
+              {vehicleSuccess && (
+                <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-4">
+                  <CheckCircle size={18} /> {vehicleSuccess}
+                </div>
+              )}
+              {vehicleError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-4">
+                  <X size={18} /> {vehicleError}
+                </div>
+              )}
+
+              {/* Vehicles List */}
+              <div className="space-y-4 mb-10 relative z-10">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">My Garage</h3>
+                {vehicles.length === 0 ? (
+                  <div className="p-8 bg-white/40 border-2 border-dashed border-slate-200 rounded-[2rem] text-center">
+                    <p className="text-slate-400 font-bold text-sm italic">Your garage is currently empty. Add a vehicle below to start offering rides!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {vehicles.map((veh, idx) => (
+                      <div key={idx} className={`p-6 border-2 rounded-[2rem] transition-all relative group flex flex-col justify-between ${
+                        veh.isPrimary 
+                          ? "bg-gradient-to-br from-pastel-mint-light/20 to-pastel-mint-light/40 border-pastel-mint shadow-md" 
+                          : "bg-white/40 border-white hover:border-slate-200"
+                      }`}>
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-black text-slate-800 text-base">{veh.make} {veh.model}</h4>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{veh.year || "Year N/A"}</p>
+                            </div>
+                            {veh.isPrimary && (
+                              <span className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider bg-pastel-mint-dark text-white rounded-full shadow-sm">
+                                Primary Active
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-4 mt-4">
+                            <span className="font-mono text-xs font-black bg-pastel-yellow text-slate-800 px-3 py-1 rounded-xl shadow-inner border border-amber-200">
+                              {veh.licensePlate}
+                            </span>
+                            {veh.color && (
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                                <div className="w-3.5 h-3.5 rounded-full border border-slate-300" style={{ backgroundColor: veh.color.toLowerCase() }} />
+                                <span className="uppercase text-[10px] tracking-tight">{veh.color}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6 pt-4 border-t border-slate-200/50">
+                          {!veh.isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimary(idx)}
+                              disabled={vehicleActionLoading}
+                              className="px-4 py-2 bg-white/80 hover:bg-white border border-slate-200 text-slate-700 hover:text-slate-800 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              Set Active
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVehicle(idx)}
+                            disabled={vehicleActionLoading}
+                            className="px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50 ml-auto"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Vehicle Form */}
+              <form onSubmit={handleAddVehicle} className="bg-white/40 border-2 border-white rounded-[2rem] p-6 md:p-8 space-y-6 relative z-10">
+                <h3 className="text-[10px] font-black text-slate-700 uppercase tracking-[0.3em] ml-1 flex items-center gap-2">
+                  <Car size={16} /> Add New Vehicle
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Make */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Make / Brand</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Honda, Tesla"
+                      value={newVehicle.make}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, make: e.target.value }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all"
+                    />
+                  </div>
+
+                  {/* Model */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Model Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Civic, Model 3"
+                      value={newVehicle.model}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, model: e.target.value }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all"
+                    />
+                  </div>
+
+                  {/* License Plate */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">License Plate ID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DL 3C AB 1234"
+                      value={newVehicle.licensePlate}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, licensePlate: e.target.value }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all font-mono"
+                    />
+                  </div>
+
+                  {/* Color */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Vehicle Color</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. White, Black, Red"
+                      value={newVehicle.color}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, color: e.target.value }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all"
+                    />
+                  </div>
+
+                  {/* Year */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Manufacture Year</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2022"
+                      value={newVehicle.year}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, year: parseInt(e.target.value) || new Date().getFullYear() }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all"
+                    />
+                  </div>
+
+                  {/* Registration Number */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Registration No. (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. REG-987654"
+                      value={newVehicle.registrationNumber}
+                      onChange={(e) => setNewVehicle(prev => ({ ...prev, registrationNumber: e.target.value }))}
+                      className="w-full px-5 py-4 border border-slate-200 rounded-2xl outline-none font-bold text-sm bg-white focus:border-pastel-lavender transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={vehicleActionLoading}
+                  className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                >
+                  {vehicleActionLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} /> Saving Vehicle...
+                    </>
+                  ) : (
+                    "Add Vehicle to Garage"
+                  )}
+                </button>
+              </form>
+            </div>
+
             {/* Driver Reviews Section */}
             {driverReviews.length > 0 && (
               <div className="mt-12 bg-white/80 backdrop-blur-xl rounded-[3rem] p-8 md:p-12 shadow-pastel-shadow border border-slate-200/70 relative overflow-hidden group">
@@ -372,7 +661,7 @@ export default function UserProfile() {
             )}
           </div>
 
-          <KYCUpload user={user} onUploaded={fetchProfile} />
+
         </div>
       </div>
     </div>

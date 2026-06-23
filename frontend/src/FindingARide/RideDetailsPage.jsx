@@ -6,8 +6,12 @@ import {
   Info, Loader2, ChevronRight, IndianRupee, Navigation,
   AlertCircle,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
+  Heart,
+  VolumeX,
+  Volume2
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import RouteMap from "../components/RouteMap";
 import RideReview from "../components/RideReview";
 import CheckoutModal from "../components/CheckoutModal";
@@ -31,41 +35,67 @@ export default function RideDetailsPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showLiveTracking, setShowLiveTracking] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [errorState, setErrorState] = useState(null);
+
+  // Custom states for premium interactive features
+  const [selectedSeats, setSelectedSeats] = useState(1);
+  const [billSplitCount, setBillSplitCount] = useState(2);
+  const [silentMode, setSilentMode] = useState(false);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
     setCurrentUser(user);
   }, []);
 
-  useEffect(() => {
-    const fetchRide = async () => {
-      try {
-        const res = await api.get(`/rides/${id}`);
-        setRide(res.data.data);
-        
-        const reviewsRes = await reviewService.getReviewsByRide(id);
-        setReviews(reviewsRes.data || []);
-        
-        const driverId = res.data.data.driver?._id || res.data.data.driverId;
-        if (driverId) {
-          const ratingRes = await reviewService.getDriverAverageRating(driverId);
-          setDriverRating(ratingRes.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch ride:", err);
-        setMessage({ type: 'error', text: 'Failed to synchronize trip node' });
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
     fetchRide();
   }, [id]);
+
+  const fetchRide = async () => {
+    setLoading(true);
+    setErrorState(null);
+    try {
+      const res = await api.get(`/rides/${id}`);
+      setRide(res.data.data);
+      
+      const reviewsRes = await reviewService.getReviewsByRide(id);
+      setReviews(reviewsRes.data || []);
+      
+      const driverId = res.data.data.driver?._id || res.data.data.driverId;
+      if (driverId) {
+        const ratingRes = await reviewService.getDriverAverageRating(driverId);
+        setDriverRating(ratingRes.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch ride:", err);
+      setErrorState(err.response?.data?.message || 'Failed to sync journey coordinates from server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-pastel-cream flex flex-col items-center justify-center">
         <Loader2 className="animate-spin text-pastel-lavender-dark mb-6" size={48} strokeWidth={3} />
         <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">Assembling Expedition Matrix...</p>
+      </div>
+    );
+  }
+
+  if (errorState) {
+    return (
+      <div className="min-h-screen bg-pastel-cream flex flex-col items-center justify-center p-6">
+        <ErrorBanner 
+          message={errorState} 
+          onRetry={fetchRide} 
+        />
+        <button 
+          onClick={() => navigate(-1)} 
+          className="mt-6 text-slate-500 hover:text-slate-800 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+        >
+          <ArrowLeft size={14} /> Back to Search Hub
+        </button>
       </div>
     );
   }
@@ -97,7 +127,12 @@ export default function RideDetailsPage() {
   };
 
   const seatsLeft = (ride.availableSeats || 0) - (ride.seatsBooked || 0);
-  const totalPrice = (ride.pricePerSeat || 0) * (ride.seatsBooked || 1);
+  const pendingSeats = ride.passengers
+    ? ride.passengers
+        .filter(p => p.status === 'pending')
+        .reduce((sum, p) => sum + (p.bookedSeats || 0), 0)
+    : 0;
+  const totalPrice = (ride.pricePerSeat || 0) * selectedSeats;
 
   const handleBook = async () => {
     setShowCheckout(true);
@@ -130,7 +165,7 @@ export default function RideDetailsPage() {
         onClose={() => setShowCheckout(false)}
         onSuccess={async () => {
           try {
-            await bookingService.bookRide(id);
+            await bookingService.bookRide(id, selectedSeats);
             setBooked(true);
             setMessage({ type: 'success', text: 'Quantum link established. Journey confirmed.' });
             setTimeout(() => navigate('/bookings'), 2500);
@@ -249,7 +284,21 @@ export default function RideDetailsPage() {
                 <div className="space-y-8 mb-12">
                   <DetailItem icon={<Calendar />} label="Cycle" value={formattedDate} />
                   <DetailItem icon={<Clock />} label="Window" value={formattedTime} />
-                  <DetailItem icon={<Users />} label="Capacity" value={`${seatsLeft} Nodes Free`} />
+                  <DetailItem 
+                    icon={<Users />} 
+                    label="Capacity" 
+                    value={
+                      <div className="flex flex-col gap-1">
+                        <span>{seatsLeft} Spaces Free</span>
+                        {pendingSeats > 0 && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-100 rounded-lg text-[8px] font-black uppercase tracking-widest text-amber-700 w-fit">
+                            <span className="w-1 h-1 bg-amber-500 rounded-full animate-pulse" />
+                            {pendingSeats} On Hold
+                          </span>
+                        )}
+                      </div>
+                    } 
+                  />
                   <DetailItem icon={<Car />} label="Vessel" value={ride.vehicleInfo?.description || "Stealth Commuter"} />
                 </div>
 
@@ -358,8 +407,32 @@ function DetailItem({ icon, label, value }) {
       </div>
       <div>
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{label}</p>
-        <p className="text-sm font-black tracking-tight">{value}</p>
+        <div className="text-sm font-black tracking-tight">{value}</div>
       </div>
+    </div>
+  );
+}
+
+function ErrorBanner({ message, onRetry }) {
+  return (
+    <div className="w-full max-w-lg p-6 bg-red-50 border-2 border-red-200 rounded-[2.5rem] shadow-xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200 mx-auto">
+      <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto shadow-md">
+        <AlertCircle size={28} strokeWidth={2.5} />
+      </div>
+      <div className="space-y-1">
+        <h4 className="text-slate-800 font-black text-lg uppercase tracking-tight">Synchronization Error</h4>
+        <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+          {message || "We encountered an issue syncing data with the ride-pooling network."}
+        </p>
+      </div>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-red-500/20"
+        >
+          Retry Connection
+        </button>
+      )}
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
   CheckCheck
 } from "lucide-react";
 import chatService from "../api/chatService";
+import socketService from "../services/socketService";
+import { notify } from "../utils/notify";
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -26,17 +28,87 @@ export default function ChatPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+  const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  // Fetch chats on mount
+  // Fetch chats on mount and connect socket
   useEffect(() => {
     fetchChats();
+    const token = localStorage.getItem("jwtToken");
+    if (token) {
+      socketService.connect(token);
+    }
   }, []);
 
-  // Fetch messages when chat is selected
+  // Set up socket listeners for real-time chat updates
+  useEffect(() => {
+    const handleReceiveMessage = (msg) => {
+      setSelectedChat((currentSelected) => {
+        if (currentSelected && (msg.chat === currentSelected._id || msg.chat?._id === currentSelected._id)) {
+          setMessages((prev) => {
+            if (prev.some((m) => m._id === msg._id)) return prev;
+            return [...prev, msg];
+          });
+        }
+        return currentSelected;
+      });
+
+      setChats((prevChats) => {
+        return prevChats
+          .map((chat) => {
+            if (chat._id === msg.chat || chat._id === msg.chat?._id) {
+              return {
+                ...chat,
+                lastMessage: msg,
+                updatedAt: new Date(),
+              };
+            }
+            return chat;
+          })
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      });
+    };
+
+    const handleUserTyping = (data) => {
+      setSelectedChat((currentSelected) => {
+        if (currentSelected && data.chatId === currentSelected._id) {
+          setTypingUsers((prev) => ({ ...prev, [data.userId]: data.userName }));
+        }
+        return currentSelected;
+      });
+    };
+
+    const handleUserStopTyping = (data) => {
+      setTypingUsers((prev) => {
+        const copy = { ...prev };
+        delete copy[data.userId];
+        return copy;
+      });
+    };
+
+    const socket = socketService.getSocket();
+    if (socket) {
+      socketService.onReceiveMessage(handleReceiveMessage);
+      socket.on("user-typing", handleUserTyping);
+      socket.on("user-stop-typing", handleUserStopTyping);
+    }
+
+    return () => {
+      const activeSocket = socketService.getSocket();
+      if (activeSocket) {
+        activeSocket.off("receive-message", handleReceiveMessage);
+        activeSocket.off("user-typing", handleUserTyping);
+        activeSocket.off("user-stop-typing", handleUserStopTyping);
+      }
+    };
+  }, []);
+
+  // Fetch messages and reset typing state when chat is selected
   useEffect(() => {
     if (selectedChat) {
       fetchMessages(selectedChat._id);
+      setTypingUsers({});
     }
   }, [selectedChat]);
 
@@ -68,8 +140,34 @@ export default function ChatPage() {
     }
   };
 
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    if (!selectedChat) return;
+
+    const receiverId = selectedChat.participants.find((p) => p._id !== selectedChat.userId)?._id;
+    if (!receiverId) return;
+
+    socketService.sendChatTyping(selectedChat._id, receiverId);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.sendChatStopTyping(selectedChat._id, receiverId);
+    }, 2000);
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChat) return;
+
+    const receiverId = selectedChat.participants.find((p) => p._id !== selectedChat.userId)?._id;
+    if (receiverId && typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      socketService.sendChatStopTyping(selectedChat._id, receiverId);
+    }
 
     const messageContent = newMessage;
     setNewMessage("");
@@ -77,7 +175,7 @@ export default function ChatPage() {
 
     try {
       const response = await chatService.sendMessage(
-        selectedChat.participants.find((p) => p._id !== selectedChat.userId)?._id,
+        receiverId,
         messageContent,
         selectedChat._id
       );
@@ -99,19 +197,19 @@ export default function ChatPage() {
     }
   };
 
-  const handleDeleteChat = async (chatId) => {
-    if (!window.confirm("Delete this conversation?")) return;
-
-    try {
-      await chatService.deleteChat(chatId);
-      setChats(chats.filter((chat) => chat._id !== chatId));
-      if (selectedChat?._id === chatId) {
-        setSelectedChat(null);
-        setMessages([]);
+  const handleDeleteChat = (chatId) => {
+    notify.confirm("Delete this conversation?", async () => {
+      try {
+        await chatService.deleteChat(chatId);
+        setChats(chats.filter((chat) => chat._id !== chatId));
+        if (selectedChat?._id === chatId) {
+          setSelectedChat(null);
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error("Failed to delete chat:", err);
       }
-    } catch (err) {
-      console.error("Failed to delete chat:", err);
-    }
+    });
   };
 
   const scrollToBottom = () => {
@@ -350,6 +448,17 @@ export default function ChatPage() {
                     <p className="text-slate-500 text-xs font-medium mt-3 leading-relaxed italic">"Great connections start with a single packet."</p>
                   </div>
                 </div>
+              {Object.keys(typingUsers).length > 0 && (
+                <div className="flex justify-start animate-pulse py-2">
+                  <div className="bg-white border border-slate-100 shadow-sm text-slate-500 px-6 py-3 rounded-[1.5rem] rounded-tl-none text-[11px] font-bold tracking-tight flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-pastel-lavender-dark rounded-full animate-bounce" />
+                    <span className="w-1.5 h-1.5 bg-pastel-mint-dark rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 bg-pastel-pink-dark rounded-full animate-bounce [animation-delay:0.4s]" />
+                    <span className="text-slate-400 font-medium ml-1">
+                      {Object.values(typingUsers).join(", ")} is typing
+                    </span>
+                  </div>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -361,7 +470,7 @@ export default function ChatPage() {
                   type="text"
                   placeholder="Sync a message..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
