@@ -14,6 +14,8 @@ import UserProfile from "./pages/UserProfile";
 import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 import RiderBookingsPage from "./pages/RiderBookingsPage";
 import RideHistoryPage from "./pages/RideHistoryPage";
+import ChatPage from "./pages/ChatPage";
+import ExplorationMap from "./pages/ExplorationMap";
 import Layout from "./components/Layout";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -107,6 +109,22 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <RideHistoryPage />
+      </Layout>
+    ),
+  },
+  {
+    path: "/chat",
+    element: (
+      <Layout>
+        <ChatPage />
+      </Layout>
+    ),
+  },
+  {
+    path: "/exploration-map",
+    element: (
+      <Layout>
+        <ExplorationMap />
       </Layout>
     ),
   },
